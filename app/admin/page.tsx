@@ -445,8 +445,9 @@ function AiPanel() {
   async function fetchModels() {
     if (!settings) return;
     setFetchMsg("正在获取…");
+    let res: Response;
     try {
-      const res = await fetch("/api/models", {
+      res = await fetch("/api/models", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -457,17 +458,24 @@ function AiPanel() {
           },
         }),
       });
-      const d = await res.json();
-      if (d.error) {
-        setFetchMsg(d.error);
-      } else if (Array.isArray(d.models) && d.models.length) {
-        setSettings({ ...settings, ai: { ...settings.ai, models: d.models } });
-        setFetchMsg(`已获取 ${d.models.length} 个模型，记得保存`);
-      } else {
-        setFetchMsg("服务未返回模型，保留当前列表");
-      }
     } catch {
-      setFetchMsg("获取失败，请检查服务地址");
+      setFetchMsg("无法连接站点后端，请检查站点服务是否正常");
+      return;
+    }
+    let d: { error?: string; models?: string[] };
+    try {
+      d = await res.json();
+    } catch {
+      setFetchMsg(`站点后端返回异常（HTTP ${res.status}），请查看服务器日志`);
+      return;
+    }
+    if (d.error) {
+      setFetchMsg(d.error);
+    } else if (Array.isArray(d.models) && d.models.length) {
+      setSettings({ ...settings, ai: { ...settings.ai, models: d.models } });
+      setFetchMsg(`已获取 ${d.models.length} 个模型，记得保存`);
+    } else {
+      setFetchMsg("服务未返回模型，保留当前列表");
     }
   }
 
@@ -556,7 +564,7 @@ function AiPanel() {
             </button>
           </div>
           {fetchMsg && (
-            <span className="mt-1 block text-xs font-normal text-slate-mid">
+            <span className="mt-1 block whitespace-pre-line break-all text-xs font-normal text-slate-mid">
               {fetchMsg}
             </span>
           )}

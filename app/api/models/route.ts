@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 import { getSettings } from "@/lib/store";
 import { isAdminRequest, unauthorized } from "@/lib/auth";
+import { modelListCandidates } from "@/lib/ai";
 
 /**
  * 拉取模型列表（仅管理员，用于后台「自动获取」按钮）：
- *  - OpenAI 兼容：GET {baseUrl}/v1/models
- *  - Ollama：GET {baseUrl}/api/tags
- * 请求体可携带后台表单中未保存的 config，缺省时用已保存的站点配置。
+ *  - OpenAI 兼容：GET {base}/v1/models（失败再试 {base}/models）
+ *  - Ollama：GET {base}/api/tags
+ * 地址会自动归一化（允许带 /v1、/v1/chat/completions 等常见后缀）。
+ * 失败时返回每个候选地址的具体错误，便于排查。
  */
 export async function POST(req: Request) {
   if (!isAdminRequest(req)) return unauthorized();
 
-  let provider = "openai";
+  let provider: "openai" | "ollama" = "openai";
   let baseUrl = "";
   let apiKey = "";
 
@@ -21,47 +23,64 @@ export async function POST(req: Request) {
     const userBase = body?.config?.baseUrl?.trim() || "";
     if (userBase) {
       provider = body?.config?.provider === "ollama" ? "ollama" : "openai";
-      baseUrl = userBase.replace(/\/+$/, "");
+      baseUrl = userBase;
       apiKey = body?.config?.apiKey?.trim() || "";
     } else {
       provider = server.provider;
-      baseUrl = (server.baseUrl || process.env.AI_BASE_URL || "").replace(/\/+$/, "");
+      baseUrl = server.baseUrl || process.env.AI_BASE_URL || "";
       apiKey = server.apiKey || process.env.AI_API_KEY || "";
     }
   } catch {
     return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
   }
 
-  if (!baseUrl) return NextResponse.json({ models: [] });
-
-  try {
-    if (provider === "ollama") {
-      const res = await fetch(`${baseUrl}/api/tags`, {
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!res.ok) throw new Error(`服务返回 ${res.status}`);
-      const data = await res.json();
-      const models: string[] = (data.models ?? [])
-        .map((m: { name?: string }) => m.name)
-        .filter(Boolean);
-      return NextResponse.json({ models });
-    }
-
-    const res = await fetch(`${baseUrl}/v1/models`, {
-      headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!res.ok) throw new Error(`服务返回 ${res.status}`);
-    const data = await res.json();
-    const models: string[] = (data.data ?? [])
-      .map((m: { id?: string }) => m.id)
-      .filter(Boolean);
-    return NextResponse.json({ models });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+  if (!baseUrl) {
+    return NextResponse.json({ error: "请先填写服务地址" }, { status: 400 });
+  }
+  if (!/^https?:\/\//.test(baseUrl.trim())) {
     return NextResponse.json(
-      { error: `获取模型列表失败：${msg}` },
-      { status: 502 }
+      { error: "服务地址需以 http:// 或 https:// 开头" },
+      { status: 400 }
     );
   }
+
+  const attempts: string[] = [];
+
+  for (const url of modelListCandidates(provider, baseUrl)) {
+    try {
+      const res = await fetch(url, {
+        headers:
+          provider === "openai" && apiKey
+            ? { Authorization: `Bearer ${apiKey}` }
+            : undefined,
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        attempts.push(`${url} → HTTP ${res.status} ${detail.slice(0, 120)}`);
+        continue;
+      }
+      const data = await res.json();
+      const models: string[] =
+        provider === "ollama"
+          ? (data.models ?? [])
+              .map((m: { name?: string }) => m.name)
+              .filter(Boolean)
+          : (data.data ?? [])
+              .map((m: { id?: string }) => m.id)
+              .filter(Boolean);
+      if (models.length) return NextResponse.json({ models });
+      attempts.push(`${url} → 请求成功但未返回模型`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      attempts.push(
+        `${url} → ${msg.includes("aborted") || msg.includes("timeout") ? "连接超时（15s）" : msg}`
+      );
+    }
+  }
+
+  return NextResponse.json(
+    { error: `获取模型列表失败：\n${attempts.join("\n")}` },
+    { status: 502 }
+  );
 }

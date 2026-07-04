@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSettings } from "@/lib/store";
+import { normalizeOpenAiBase, normalizeOllamaBase } from "@/lib/ai";
 
 /**
  * 站内 AI 对话接口。
@@ -27,10 +28,10 @@ function resolveConfig() {
   const provider = server.baseUrl
     ? server.provider
     : (process.env.AI_PROVIDER as "openai" | "ollama") || "openai";
-  const baseUrl = (server.baseUrl || process.env.AI_BASE_URL || "").replace(
-    /\/+$/,
-    ""
-  );
+  const raw = server.baseUrl || process.env.AI_BASE_URL || "";
+  // 归一化：允许站长填入带 /v1、/v1/chat/completions 等后缀的地址
+  const baseUrl =
+    provider === "ollama" ? normalizeOllamaBase(raw) : normalizeOpenAiBase(raw);
   const apiKey = server.apiKey || process.env.AI_API_KEY || "";
   return { provider, baseUrl, apiKey };
 }
