@@ -1,0 +1,246 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #07070d;
+  --color-ink-soft: #0d0d17;
+  --color-mist: #a3a3b8;
+  --color-frost: #e8e8f2;
+  --color-aurora-1: #7c5cff;
+  --color-aurora-2: #38d4ff;
+  --color-aurora-3: #ff5ca8;
+  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans SC", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-frost);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-aurora-1) 40%, transparent);
+}
+
+/* ---------- 极光背景 ---------- */
+.aurora-field {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.35;
+  will-change: transform;
+}
+
+.aurora-blob--violet {
+  width: 46rem;
+  height: 46rem;
+  top: -14rem;
+  left: -10rem;
+  background: radial-gradient(circle at center, #7c5cff, transparent 65%);
+  animation: drift-a 26s ease-in-out infinite alternate;
+}
+
+.aurora-blob--cyan {
+  width: 40rem;
+  height: 40rem;
+  top: 20%;
+  right: -14rem;
+  background: radial-gradient(circle at center, #38d4ff, transparent 65%);
+  animation: drift-b 32s ease-in-out infinite alternate;
+}
+
+.aurora-blob--rose {
+  width: 34rem;
+  height: 34rem;
+  bottom: -12rem;
+  left: 28%;
+  background: radial-gradient(circle at center, #ff5ca8, transparent 65%);
+  opacity: 0.22;
+  animation: drift-c 38s ease-in-out infinite alternate;
+}
+
+@keyframes drift-a {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(9rem, 6rem) scale(1.15); }
+}
+@keyframes drift-b {
+  from { transform: translate(0, 0) scale(1.1); }
+  to   { transform: translate(-8rem, -5rem) scale(0.95); }
+}
+@keyframes drift-c {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(-6rem, -8rem); }
+}
+
+/* 网格线 + 噪点 */
+.grid-veil {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 80%);
+}
+
+/* ---------- 渐变文字 ---------- */
+.text-aurora {
+  background: linear-gradient(115deg, #7c5cff 10%, #38d4ff 50%, #ff5ca8 90%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aurora-shift 8s ease-in-out infinite;
+}
+
+@keyframes aurora-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* ---------- 玻璃卡片 ---------- */
+.glass {
+  background: rgb(255 255 255 / 0.04);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.glass-hover {
+  transition: border-color 0.3s ease, background 0.3s ease, transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.glass-hover:hover {
+  border-color: rgb(124 92 255 / 0.45);
+  background: rgb(255 255 255 / 0.06);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px -16px rgb(124 92 255 / 0.35);
+}
+
+/* ---------- 跑马灯 ---------- */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 36s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ---------- 光晕按钮 ---------- */
+.btn-aurora {
+  position: relative;
+  background: linear-gradient(115deg, #7c5cff, #38d4ff);
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.btn-aurora:hover {
+  box-shadow: 0 0 32px -4px rgb(124 92 255 / 0.7);
+  transform: translateY(-1px);
+}
+
+/* ---------- 文章正文排版 ---------- */
+.prose-haizhu {
+  line-height: 1.85;
+  color: #c9c9da;
+}
+
+.prose-haizhu h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-frost);
+  margin: 2.2rem 0 1rem;
+}
+
+.prose-haizhu h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-frost);
+  margin: 1.8rem 0 0.8rem;
+}
+
+.prose-haizhu p {
+  margin: 1rem 0;
+}
+
+.prose-haizhu a {
+  color: var(--color-aurora-2);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.prose-haizhu ul,
+.prose-haizhu ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.prose-haizhu ul { list-style: disc; }
+.prose-haizhu ol { list-style: decimal; }
+
+.prose-haizhu li { margin: 0.4rem 0; }
+
+.prose-haizhu code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: rgb(124 92 255 / 0.12);
+  border: 1px solid rgb(124 92 255 / 0.2);
+  border-radius: 6px;
+  padding: 0.15em 0.4em;
+  color: #b9a8ff;
+}
+
+.prose-haizhu pre {
+  background: #0d0d17;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 12px;
+  padding: 1.2rem;
+  overflow-x: auto;
+  margin: 1.4rem 0;
+}
+
+.prose-haizhu pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #d6d6e7;
+}
+
+.prose-haizhu blockquote {
+  border-left: 3px solid var(--color-aurora-1);
+  padding-left: 1rem;
+  margin: 1.4rem 0;
+  color: var(--color-mist);
+  font-style: italic;
+}
+
+/* 尊重系统减弱动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob,
+  .marquee-track,
+  .text-aurora {
+    animation: none;
+  }
+}
