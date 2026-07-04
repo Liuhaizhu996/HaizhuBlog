@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 /**
  * 循环打字机：依次打出/删除 phrases 中的短语。
+ * 编辑风样式：衬线斜体 + 朱砂色光标。
  */
 export default function Typewriter({ phrases }: { phrases: string[] }) {
   const [index, setIndex] = useState(0);
@@ -31,9 +32,9 @@ export default function Typewriter({ phrases }: { phrases: string[] }) {
   }, [text, deleting, index, phrases]);
 
   return (
-    <span className="text-aurora">
+    <span className="font-serif-display italic text-vermilion">
       {text}
-      <span className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[0.15em] animate-pulse bg-[#38d4ff]" />
+      <span className="ml-0.5 inline-block h-[1em] w-[2.5px] translate-y-[0.12em] animate-pulse bg-vermilion" />
     </span>
   );
 }

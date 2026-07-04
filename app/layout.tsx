@@ -5,11 +5,11 @@ import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: {
-    default: "海竹小站 · 分享、学习与 AI 工具",
-    template: "%s · 海竹小站",
+    default: "HaizhuAI · 阅读、学习，与 AI 对话",
+    template: "%s · HaizhuAI",
   },
   description:
-    "一个不止于博客的个人站点：分享资讯、教程与日常，并集成开源 AI 对话工具，让你边聊边学。",
+    "HaizhuAI —— 一份「纸与墨」风格的数字刊物：分享资讯、教程与日常，并集成开源 AI 对话工具，让你边读边问。",
 };
 
 export default function RootLayout({
@@ -20,13 +20,8 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="min-h-screen antialiased">
-        {/* 全局极光背景 */}
-        <div className="aurora-field" aria-hidden>
-          <div className="aurora-blob aurora-blob--violet" />
-          <div className="aurora-blob aurora-blob--cyan" />
-          <div className="aurora-blob aurora-blob--rose" />
-        </div>
-        <div className="grid-veil" aria-hidden />
+        {/* 纸张颗粒质感 */}
+        <div className="paper-grain" aria-hidden />
 
         <Navbar />
         <main className="relative">{children}</main>

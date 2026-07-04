@@ -1,10 +1,10 @@
-# 海竹小站 🌊
+# HaizhuAI ✒️
 
-一个「不止于博客」的个人站点：分享资讯、教程与日常，并逐步集成开源 AI 对话工具，让阅读与提问同时发生。
+一份「不止于博客」的数字刊物：分享资讯、教程与日常，并逐步集成开源 AI 对话工具，让阅读与提问同时发生。
 
 ## ✨ 特性
 
-- **极光动效 UI**：深空底色 + 漂移极光渐变 + 玻璃拟态卡片 + 滚动渐显动画
+- **纸与墨编辑风 UI**（Editorial Magazine）：暖纸底色 + 墨黑衬线大标题 + 朱砂点缀 + 报纸细线网格 + 纸张颗粒质感；动效包括标题逐行揭示、新闻 ticker、下划线书写、卡片墨影抬升、滚动渐显
 - **博客系统**：Markdown 即文章（`content/posts/*.md`），支持分类筛选（资讯 / 教程 / 日常）
 - **AI 对话雏形**：完整的聊天界面 + 可插拔后端接口，接入真实模型只需改一个文件
 - **响应式设计**：桌面 / 移动端全适配，尊重系统"减弱动态效果"偏好
@@ -30,14 +30,14 @@ npm run build    # 生产构建
 
 ```
 app/
-  page.tsx            # 首页（Hero / 跑马灯 / 最新文章 / AI 工具 Bento）
+  page.tsx            # 首页（头版 Hero / 新闻 ticker / 编辑索引 / AI 工具栏目）
   blog/               # 文章列表 + 详情
   tools/              # AI 工具广场
   chat/               # AI 对话页
   about/              # 关于 + 路线图
   api/chat/route.ts   # 对话后端接口（当前为演示回复，可替换为真实模型）
 components/
-  motion/             # 动效原语：Reveal / TiltCard / Marquee / Typewriter
+  motion/             # 动效原语：Reveal / Marquee(ticker) / Typewriter
   chat/ChatShell.tsx  # 聊天界面
 content/posts/        # Markdown 文章
 lib/posts.ts          # 文章加载与解析

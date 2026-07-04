@@ -14,23 +14,23 @@ export default function BlogList({ posts }: { posts: PostMeta[] }) {
     active === "全部" ? posts : posts.filter((p) => p.category === active);
 
   return (
-    <div className="mt-10 pb-10">
+    <div className="mt-8 pb-10">
       {/* 分类筛选 */}
       <div className="flex flex-wrap gap-2">
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setActive(cat)}
-            className={`relative rounded-full px-5 py-2 text-sm transition-colors ${
+            className={`relative px-5 py-2 text-sm font-bold tracking-wider transition-colors ${
               active === cat
                 ? "text-white"
-                : "text-[--color-mist] hover:text-white"
+                : "text-ink-soft hover:text-ink"
             }`}
           >
             {active === cat && (
               <motion.span
                 layoutId="cat-pill"
-                className="absolute inset-0 rounded-full bg-gradient-to-r from-[#7c5cff]/80 to-[#38d4ff]/80"
+                className="absolute inset-0 bg-ink"
                 transition={{ type: "spring", stiffness: 350, damping: 30 }}
               />
             )}
@@ -46,9 +46,9 @@ export default function BlogList({ posts }: { posts: PostMeta[] }) {
             <motion.div
               key={post.slug}
               layout
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
               transition={{ duration: 0.3 }}
             >
               <PostCard post={post} />
@@ -58,7 +58,7 @@ export default function BlogList({ posts }: { posts: PostMeta[] }) {
       </motion.div>
 
       {filtered.length === 0 && (
-        <p className="mt-16 text-center text-[--color-mist]">
+        <p className="mt-16 text-center text-ink-faint">
           这个分类还没有文章，敬请期待～
         </p>
       )}

@@ -1,15 +1,12 @@
 import type { ReactNode } from "react";
 
 /**
- * 无缝循环跑马灯：内容渲染两份，CSS 动画平移 50%。
+ * 报纸风新闻滚动条（ticker）：内容渲染两份，CSS 动画平移 50% 实现无缝循环。
  */
 export default function Marquee({ children }: { children: ReactNode }) {
   return (
-    <div
-      className="relative overflow-hidden py-2 [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]"
-      aria-hidden
-    >
-      <div className="marquee-track gap-6 pr-6">
+    <div className="relative overflow-hidden border-y border-ink bg-paper-warm py-2.5" aria-hidden>
+      <div className="ticker-track items-center gap-8 pr-8">
         {children}
         {children}
       </div>

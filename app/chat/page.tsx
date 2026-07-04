@@ -3,7 +3,7 @@ import ChatShell from "@/components/chat/ChatShell";
 
 export const metadata: Metadata = {
   title: "AI 对话",
-  description: "海竹小站的站内 AI 对话工具（雏形）。",
+  description: "HaizhuAI 的站内 AI 对话工具（雏形）。",
 };
 
 export default function ChatPage() {

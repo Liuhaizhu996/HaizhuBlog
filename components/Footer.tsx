@@ -2,26 +2,30 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="relative mt-24 border-t border-white/5">
+    <footer className="relative mt-24">
+      <div className="rule-strong mx-auto max-w-6xl" />
       <div className="mx-auto max-w-6xl px-5 py-12">
-        <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
+        <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
           <div>
-            <p className="text-lg font-bold">
-              海竹<span className="text-aurora">小站</span>
+            <p className="font-serif-display text-2xl font-black">
+              Haizhu<span className="bg-vermilion px-1.5 text-white">AI</span>
             </p>
-            <p className="mt-2 max-w-sm text-sm text-[--color-mist]">
-              不止于博客 —— 在这里阅读、学习，并与 AI 一起探索。
+            <p className="mt-3 max-w-sm text-sm leading-relaxed text-ink-faint">
+              一份数字刊物 —— 在这里阅读、学习，并与 AI 一起探索。
             </p>
           </div>
-          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-[--color-mist]">
-            <Link href="/blog" className="hover:text-white">文章</Link>
-            <Link href="/tools" className="hover:text-white">AI 工具</Link>
-            <Link href="/chat" className="hover:text-white">对话</Link>
-            <Link href="/about" className="hover:text-white">关于</Link>
+          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-soft">
+            <Link href="/blog" className="link-ink">文章</Link>
+            <Link href="/tools" className="link-ink">AI 工具</Link>
+            <Link href="/chat" className="link-ink">对话</Link>
+            <Link href="/about" className="link-ink">关于</Link>
           </nav>
         </div>
-        <p className="mt-10 text-xs text-white/30">
-          © {new Date().getFullYear()} 海竹小站 · 用心分享每一篇内容
+        <div className="rule-h mt-10" />
+        <p className="mt-5 flex flex-wrap items-center gap-2 text-xs text-ink-faint">
+          <span>© {new Date().getFullYear()} HaizhuAI</span>
+          <span aria-hidden>·</span>
+          <span>纸与墨，字与光</span>
         </p>
       </div>
     </footer>

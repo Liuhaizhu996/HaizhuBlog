@@ -23,7 +23,7 @@ export default function ChatShell() {
       id: 0,
       role: "assistant",
       content:
-        "你好，我是海竹小站的 AI 助手 🌊\n\n目前我还是一个界面雏形，真正的开源大模型正在接入中。你可以先试试发送消息，感受一下交互；等模型接入后，我就能真正回答你的问题啦。",
+        "你好，我是 HaizhuAI 的 AI 助手 ✒️\n\n目前我还是一个界面雏形，真正的开源大模型正在接入中。你可以先试试发送消息，感受一下交互；等模型接入后，我就能真正回答你的问题啦。",
     },
   ]);
   const [input, setInput] = useState("");
@@ -78,11 +78,14 @@ export default function ChatShell() {
   return (
     <div className="flex flex-col">
       {/* 头部 */}
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl font-black md:text-3xl">
-          站内 <span className="text-aurora">AI 对话</span>
+      <div className="mb-8 text-center">
+        <p className="text-xs font-bold tracking-[0.3em] text-vermilion">
+          DIALOGUE / 对话
+        </p>
+        <h1 className="font-serif-display mt-2 text-3xl font-black md:text-4xl">
+          与 AI 对话
         </h1>
-        <p className="mt-2 text-sm text-[--color-mist]">
+        <p className="mt-3 text-sm text-ink-faint">
           界面雏形 · 开源模型接入中 · 敬请期待
         </p>
       </div>
@@ -90,7 +93,7 @@ export default function ChatShell() {
       {/* 消息区（内部滚动，避免整页被顶出视口） */}
       <div
         ref={scrollRef}
-        className="glass flex max-h-[56vh] min-h-[50vh] flex-col gap-4 overflow-y-auto rounded-3xl p-5 md:p-7"
+        className="flex max-h-[56vh] min-h-[50vh] flex-col gap-4 overflow-y-auto border-2 border-ink bg-[#fffdf8] p-5 md:p-7"
       >
         <AnimatePresence initial={false}>
           {messages.map((msg) => (
@@ -102,10 +105,10 @@ export default function ChatShell() {
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed md:max-w-[75%] ${
+                className={`max-w-[85%] whitespace-pre-wrap px-4 py-3 text-sm leading-relaxed md:max-w-[75%] ${
                   msg.role === "user"
-                    ? "rounded-br-md bg-gradient-to-br from-[#7c5cff] to-[#5a8dff] text-white"
-                    : "rounded-bl-md border border-white/10 bg-white/5 text-[#d6d6e7]"
+                    ? "bg-ink text-paper"
+                    : "border border-rule bg-paper text-ink-soft"
                 }`}
               >
                 {msg.content}
@@ -121,11 +124,11 @@ export default function ChatShell() {
             animate={{ opacity: 1 }}
             className="flex justify-start"
           >
-            <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-white/10 bg-white/5 px-4 py-3.5">
+            <div className="flex items-center gap-1.5 border border-rule bg-paper px-4 py-3.5">
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}
-                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#38d4ff]"
+                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-vermilion"
                   style={{ animationDelay: `${i * 0.15}s` }}
                 />
               ))}
@@ -140,7 +143,7 @@ export default function ChatShell() {
           <button
             key={s}
             onClick={() => send(s)}
-            className="glass glass-hover rounded-full px-4 py-2 text-xs text-[--color-mist] hover:text-white"
+            className="border border-rule bg-[#fffdf8] px-4 py-2 text-xs text-ink-soft transition-colors hover:border-ink hover:text-ink"
           >
             {s}
           </button>
@@ -153,18 +156,18 @@ export default function ChatShell() {
           e.preventDefault();
           send(input);
         }}
-        className="glass mb-10 mt-4 flex items-center gap-3 rounded-2xl p-2 pl-5 focus-within:border-[#7c5cff]/50"
+        className="mb-10 mt-4 flex items-center gap-3 border-2 border-ink bg-[#fffdf8] p-2 pl-5"
       >
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="输入你想问的问题…"
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-white/25"
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-ink-faint"
         />
         <button
           type="submit"
           disabled={loading || !input.trim()}
-          className="btn-aurora rounded-xl px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+          className="btn-vermilion px-5 py-2.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40"
         >
           发送
         </button>

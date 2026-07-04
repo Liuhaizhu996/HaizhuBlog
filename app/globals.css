@@ -1,13 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #07070d;
-  --color-ink-soft: #0d0d17;
-  --color-mist: #a3a3b8;
-  --color-frost: #e8e8f2;
-  --color-aurora-1: #7c5cff;
-  --color-aurora-2: #38d4ff;
-  --color-aurora-3: #ff5ca8;
+  /* 纸与墨 · Editorial Magazine */
+  --color-paper: #faf6ef;
+  --color-paper-warm: #f3ecdf;
+  --color-ink: #181511;
+  --color-ink-soft: #4a443b;
+  --color-ink-faint: #8b8378;
+  --color-vermilion: #e8442e;
+  --color-rule: #d9d0c0;
+  --font-serif: "Noto Serif SC", "Songti SC", "SimSun", Georgia, "Times New Roman", serif;
   --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
     "Noto Sans SC", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
@@ -18,166 +20,171 @@ html {
 }
 
 body {
-  background-color: var(--color-ink);
-  color: var(--color-frost);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   overflow-x: hidden;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--color-aurora-1) 40%, transparent);
+  background: var(--color-vermilion);
+  color: var(--color-paper);
 }
 
-/* ---------- 极光背景 ---------- */
-.aurora-field {
+.font-serif-display {
+  font-family: var(--font-serif);
+  letter-spacing: 0.01em;
+}
+
+/* ---------- 纸张颗粒 ---------- */
+.paper-grain {
   position: fixed;
   inset: 0;
-  z-index: -2;
-  overflow: hidden;
+  z-index: 50;
   pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.5 0 0 0 0 0.42 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-.aurora-blob {
+/* ---------- 报纸细线 ---------- */
+.rule-h {
+  height: 1px;
+  background: var(--color-rule);
+}
+
+.rule-strong {
+  height: 2px;
+  background: var(--color-ink);
+}
+
+/* ---------- 标题逐行揭示 ---------- */
+@keyframes line-reveal {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(0.35em);
+  }
+  to {
+    clip-path: inset(-0.2em 0 -0.2em 0);
+    transform: translateY(0);
+  }
+}
+
+.line-reveal {
+  display: block;
+  animation: line-reveal 0.9s cubic-bezier(0.22, 0.7, 0.3, 1) both;
+}
+
+/* ---------- 下划线书写动画 ---------- */
+.link-ink {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-ink::after {
+  content: "";
   position: absolute;
-  border-radius: 9999px;
-  filter: blur(90px);
-  opacity: 0.35;
-  will-change: transform;
+  left: 0;
+  bottom: -2px;
+  height: 1.5px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.35s cubic-bezier(0.22, 0.7, 0.3, 1);
 }
 
-.aurora-blob--violet {
-  width: 46rem;
-  height: 46rem;
-  top: -14rem;
-  left: -10rem;
-  background: radial-gradient(circle at center, #7c5cff, transparent 65%);
-  animation: drift-a 26s ease-in-out infinite alternate;
+.link-ink:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
 }
 
-.aurora-blob--cyan {
-  width: 40rem;
-  height: 40rem;
-  top: 20%;
-  right: -14rem;
-  background: radial-gradient(circle at center, #38d4ff, transparent 65%);
-  animation: drift-b 32s ease-in-out infinite alternate;
-}
-
-.aurora-blob--rose {
-  width: 34rem;
-  height: 34rem;
-  bottom: -12rem;
-  left: 28%;
-  background: radial-gradient(circle at center, #ff5ca8, transparent 65%);
-  opacity: 0.22;
-  animation: drift-c 38s ease-in-out infinite alternate;
-}
-
-@keyframes drift-a {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(9rem, 6rem) scale(1.15); }
-}
-@keyframes drift-b {
-  from { transform: translate(0, 0) scale(1.1); }
-  to   { transform: translate(-8rem, -5rem) scale(0.95); }
-}
-@keyframes drift-c {
-  from { transform: translate(0, 0); }
-  to   { transform: translate(-6rem, -8rem); }
-}
-
-/* 网格线 + 噪点 */
-.grid-veil {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 80%);
-}
-
-/* ---------- 渐变文字 ---------- */
-.text-aurora {
-  background: linear-gradient(115deg, #7c5cff 10%, #38d4ff 50%, #ff5ca8 90%);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: aurora-shift 8s ease-in-out infinite;
-}
-
-@keyframes aurora-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50%      { background-position: 100% 50%; }
-}
-
-/* ---------- 玻璃卡片 ---------- */
-.glass {
-  background: rgb(255 255 255 / 0.04);
-  border: 1px solid rgb(255 255 255 / 0.08);
-  backdrop-filter: blur(16px);
-}
-
-.glass-hover {
-  transition: border-color 0.3s ease, background 0.3s ease, transform 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.glass-hover:hover {
-  border-color: rgb(124 92 255 / 0.45);
-  background: rgb(255 255 255 / 0.06);
-  transform: translateY(-4px);
-  box-shadow: 0 16px 48px -16px rgb(124 92 255 / 0.35);
-}
-
-/* ---------- 跑马灯 ---------- */
-.marquee-track {
+/* ---------- 新闻滚动条（ticker）---------- */
+.ticker-track {
   display: flex;
   width: max-content;
-  animation: marquee 36s linear infinite;
+  animation: ticker 40s linear infinite;
 }
 
-.marquee-track:hover {
+.ticker-track:hover {
   animation-play-state: paused;
 }
 
-@keyframes marquee {
+@keyframes ticker {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
 }
 
-/* ---------- 光晕按钮 ---------- */
-.btn-aurora {
-  position: relative;
-  background: linear-gradient(115deg, #7c5cff, #38d4ff);
-  transition: box-shadow 0.3s ease, transform 0.2s ease;
+/* ---------- 编辑索引行 ---------- */
+.index-row {
+  transition: background 0.3s ease, padding-left 0.35s cubic-bezier(0.22, 0.7, 0.3, 1);
 }
 
-.btn-aurora:hover {
-  box-shadow: 0 0 32px -4px rgb(124 92 255 / 0.7);
-  transform: translateY(-1px);
+.index-row:hover {
+  background: var(--color-paper-warm);
+  padding-left: 1rem;
+}
+
+/* ---------- 墨影卡片 ---------- */
+.ink-card {
+  background: #fffdf8;
+  border: 1px solid var(--color-rule);
+  transition: transform 0.35s cubic-bezier(0.22, 0.7, 0.3, 1), box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+
+.ink-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--color-ink);
+  box-shadow: 6px 6px 0 0 var(--color-ink);
+}
+
+/* ---------- 朱砂按钮 ---------- */
+.btn-vermilion {
+  background: var(--color-vermilion);
+  color: #fff;
+  transition: transform 0.2s ease, box-shadow 0.25s ease;
+}
+
+.btn-vermilion:hover {
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0 0 var(--color-ink);
+}
+
+.btn-outline-ink {
+  border: 1.5px solid var(--color-ink);
+  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease,
+    transform 0.2s ease;
+}
+
+.btn-outline-ink:hover {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0 0 var(--color-vermilion);
 }
 
 /* ---------- 文章正文排版 ---------- */
 .prose-haizhu {
-  line-height: 1.85;
-  color: #c9c9da;
+  line-height: 2;
+  color: var(--color-ink-soft);
+  font-size: 1.02rem;
 }
 
 .prose-haizhu h2 {
-  font-size: 1.5rem;
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
   font-weight: 700;
-  color: var(--color-frost);
-  margin: 2.2rem 0 1rem;
+  color: var(--color-ink);
+  margin: 2.4rem 0 1rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--color-rule);
 }
 
 .prose-haizhu h3 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--color-frost);
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-ink);
   margin: 1.8rem 0 0.8rem;
 }
 
@@ -185,8 +192,12 @@ body {
   margin: 1rem 0;
 }
 
+.prose-haizhu strong {
+  color: var(--color-ink);
+}
+
 .prose-haizhu a {
-  color: var(--color-aurora-2);
+  color: var(--color-vermilion);
   text-decoration: underline;
   text-underline-offset: 4px;
 }
@@ -202,20 +213,23 @@ body {
 
 .prose-haizhu li { margin: 0.4rem 0; }
 
+.prose-haizhu li::marker {
+  color: var(--color-vermilion);
+}
+
 .prose-haizhu code {
   font-family: var(--font-mono);
   font-size: 0.875em;
-  background: rgb(124 92 255 / 0.12);
-  border: 1px solid rgb(124 92 255 / 0.2);
-  border-radius: 6px;
+  background: var(--color-paper-warm);
+  border: 1px solid var(--color-rule);
+  border-radius: 4px;
   padding: 0.15em 0.4em;
-  color: #b9a8ff;
+  color: #b3341f;
 }
 
 .prose-haizhu pre {
-  background: #0d0d17;
-  border: 1px solid rgb(255 255 255 / 0.08);
-  border-radius: 12px;
+  background: var(--color-ink);
+  border-radius: 8px;
   padding: 1.2rem;
   overflow-x: auto;
   margin: 1.4rem 0;
@@ -225,22 +239,25 @@ body {
   background: none;
   border: none;
   padding: 0;
-  color: #d6d6e7;
+  color: #ede8dd;
 }
 
 .prose-haizhu blockquote {
-  border-left: 3px solid var(--color-aurora-1);
-  padding-left: 1rem;
-  margin: 1.4rem 0;
-  color: var(--color-mist);
+  border-left: 3px solid var(--color-vermilion);
+  padding-left: 1.2rem;
+  margin: 1.6rem 0;
+  font-family: var(--font-serif);
   font-style: italic;
+  color: var(--color-ink-soft);
 }
 
 /* 尊重系统减弱动效偏好 */
 @media (prefers-reduced-motion: reduce) {
-  .aurora-blob,
-  .marquee-track,
-  .text-aurora {
+  .ticker-track,
+  .line-reveal {
     animation: none;
+  }
+  .line-reveal {
+    clip-path: none;
   }
 }
