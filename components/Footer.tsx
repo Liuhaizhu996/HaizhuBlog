@@ -53,11 +53,8 @@ export default function Footer() {
         </nav>
       </div>
       <div className="border-t border-hairline">
-        <p className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-6 py-5 text-xs text-slate-mid">
-          <span>© {new Date().getFullYear()} HaizhuAI · 用心分享每一篇内容 · 无广告，无跟踪</span>
-          <Link href="/admin" className="text-black/30 transition-colors hover:text-black">
-            管理
-          </Link>
+        <p className="mx-auto max-w-6xl px-6 py-5 text-xs text-slate-mid">
+          © {new Date().getFullYear()} HaizhuAI · 用心分享每一篇内容 · 无广告，无跟踪
         </p>
       </div>
     </footer>

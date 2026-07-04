@@ -1,0 +1,25 @@
+services:
+  haizhuai:
+    build: .
+    container_name: haizhuai
+    ports:
+      - "3000:3000"
+    environment:
+      # 管理后台密码（也可登录后在后台「修改密码」里改，改后以后台为准）
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-haizhuai-admin}
+      # 可选：站点内置 AI 服务（也可在后台「AI 模型」里配置）
+      # AI_PROVIDER: openai            # openai | ollama
+      # AI_BASE_URL: https://api.deepseek.com
+      # AI_API_KEY: sk-xxx
+      # 可选：api.telegram.org 不可达时指向反代
+      # TG_API_BASE: https://tg-proxy.example.com
+    volumes:
+      # 后台数据（设置 / 导航 / 工具 / 密码哈希 / 客服会话）
+      - haizhuai-data:/app/data
+      # 文章（后台发布的 Markdown）
+      - haizhuai-posts:/app/content/posts
+    restart: unless-stopped
+
+volumes:
+  haizhuai-data:
+  haizhuai-posts:

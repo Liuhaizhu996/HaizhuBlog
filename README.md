@@ -23,7 +23,7 @@
 
 ## 🔐 管理后台
 
-访问 `/admin`（页脚也有入口）。密码通过环境变量设置：
+后台无站内入口，直接访问 `/admin`（页面已设 noindex）。密码通过环境变量设置：
 
 ```bash
 ADMIN_PASSWORD=你的强密码   # 未设置时默认 haizhuai-admin，部署后务必修改
@@ -59,6 +59,26 @@ npm install
 npm run dev      # http://localhost:3000
 npm run build    # 生产构建
 ```
+
+## 🐳 Docker 部署
+
+```bash
+# 方式一：docker compose（推荐）
+ADMIN_PASSWORD=你的强密码 docker compose up -d --build
+
+# 方式二：手动构建运行
+docker build -t haizhuai .
+docker run -d --name haizhuai -p 3000:3000 \
+  -e ADMIN_PASSWORD=你的强密码 \
+  -v haizhuai-data:/app/data \
+  -v haizhuai-posts:/app/content/posts \
+  --restart unless-stopped haizhuai
+```
+
+- 镜像基于 `next build` 的 standalone 产物（多阶段构建，运行层无源码、无完整 node_modules）
+- 两个数据卷务必挂载并纳入备份：`/app/data`（后台配置/密码哈希/客服会话）、`/app/content/posts`（文章）
+- 可选环境变量：`AI_PROVIDER` / `AI_BASE_URL` / `AI_API_KEY`（站点内置模型服务，亦可后台配置）、`TG_API_BASE`（Telegram 反代）
+- 管理后台无站内入口，直接访问 `http://你的域名/admin`（页面已设 noindex 防收录）
 
 ## 🤖 配置 AI 对话
 
