@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { PostMeta } from "@/lib/posts";
 import type { LinkGroup } from "@/lib/links";
-import type { SiteSettings } from "@/lib/store";
+import type { SiteSettings, AiTool } from "@/lib/store";
 
 /* ================= 类型 ================= */
 
@@ -28,6 +28,7 @@ const EMPTY_DRAFT: PostDraft = {
 const TABS = [
   { key: "posts", label: "📝 文章发布" },
   { key: "ai", label: "🤖 AI 模型" },
+  { key: "tools", label: "🧰 AI 工具" },
   { key: "links", label: "🧭 站点导航" },
   { key: "bot", label: "💬 客服与联系方式" },
 ] as const;
@@ -154,6 +155,7 @@ export default function AdminPage() {
       <div className="mt-8">
         {tab === "posts" && <PostsPanel />}
         {tab === "ai" && <AiPanel />}
+        {tab === "tools" && <ToolsPanel />}
         {tab === "links" && <LinksPanel />}
         {tab === "bot" && <BotPanel />}
       </div>
@@ -439,6 +441,132 @@ function AiPanel() {
           保存配置
         </button>
         {msg && <span className="text-xs text-slate-mid">{msg}</span>}
+      </div>
+    </div>
+  );
+}
+
+/* ================= AI 工具管理 ================= */
+
+function ToolsPanel() {
+  const [tools, setTools] = useState<AiTool[]>([]);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    fetch("/api/admin/tools")
+      .then((r) => r.json())
+      .then((d) => setTools(d.tools ?? []));
+  }, []);
+
+  function update(i: number, patch: Partial<AiTool>) {
+    setTools((ts) => ts.map((t, j) => (j === i ? { ...t, ...patch } : t)));
+  }
+
+  async function save() {
+    setMsg("保存中…");
+    const res = await fetch("/api/admin/tools", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tools }),
+    });
+    const d = await res.json();
+    if (res.ok) {
+      setTools(d.tools);
+      setMsg("✅ 已保存，工具页与首页立即生效");
+    } else {
+      setMsg(`❌ ${d.error}`);
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-mid">
+          管理「AI 工具广场」的卡片与跳转地址。🔒 标记为本站内置功能，
+          跳转地址固定不可修改；其余工具可自由配置外链（https://…）。
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() =>
+              setTools([
+                ...tools,
+                { name: "", desc: "", status: "规划中", live: false, url: "", locked: false },
+              ])
+            }
+            className="rounded-lg border border-hairline px-4 py-2 text-sm text-slate-mid hover:border-black hover:text-black"
+          >
+            + 添加工具
+          </button>
+          <button onClick={save} className="btn-black rounded-lg px-6 py-2 text-sm font-semibold">
+            保存全部
+          </button>
+          {msg && <span className="text-xs text-slate-mid">{msg}</span>}
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-4">
+        {tools.map((t, i) => (
+          <div key={i} className="card-soft p-5">
+            <div className="grid gap-3 md:grid-cols-[1.2fr_2fr]">
+              <div className="space-y-3">
+                <input
+                  value={t.name}
+                  placeholder="工具名称"
+                  onChange={(e) => update(i, { name: e.target.value })}
+                  className="w-full rounded-lg border border-hairline px-3 py-2 text-sm font-bold outline-none focus:border-black"
+                />
+                <div className="flex items-center gap-3">
+                  <input
+                    value={t.status}
+                    placeholder="状态徽章文字"
+                    onChange={(e) => update(i, { status: e.target.value })}
+                    className="w-28 rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-black"
+                  />
+                  <label className="flex items-center gap-1.5 text-xs text-slate-mid">
+                    <input
+                      type="checkbox"
+                      checked={t.live}
+                      onChange={(e) => update(i, { live: e.target.checked })}
+                    />
+                    绿色徽章（已上线）
+                  </label>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <input
+                  value={t.desc}
+                  placeholder="一句话描述"
+                  onChange={(e) => update(i, { desc: e.target.value })}
+                  className="w-full rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-black"
+                />
+                <div className="flex items-center gap-2">
+                  <input
+                    value={t.url}
+                    disabled={t.locked}
+                    placeholder="https://…（留空则卡片不可点击）"
+                    onChange={(e) => update(i, { url: e.target.value })}
+                    className="w-full rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-black disabled:bg-cloud disabled:text-black/50"
+                  />
+                  {t.locked ? (
+                    <span
+                      title="本站内置功能，跳转地址不可修改"
+                      className="shrink-0 rounded-md bg-cloud px-2.5 py-2 text-xs text-slate-mid"
+                    >
+                      🔒 本站
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setTools(tools.filter((_, j) => j !== i))}
+                      className="shrink-0 rounded-md border border-red-200 px-2.5 py-2 text-xs text-red-500 hover:border-red-500"
+                    >
+                      删除
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

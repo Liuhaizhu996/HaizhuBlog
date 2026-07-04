@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAllPosts } from "@/lib/posts";
-import { getLinkGroups } from "@/lib/store";
+import { getLinkGroups, getTools } from "@/lib/store";
 import Reveal from "@/components/motion/Reveal";
 import HeroScene from "@/components/HeroScene";
 import PostCard from "@/components/PostCard";
@@ -10,39 +10,9 @@ import { ArrowRight, Play } from "lucide-react";
 // 文章与导航都可在后台随时变更，首页始终取最新数据
 export const dynamic = "force-dynamic";
 
-const toolPreviews = [
-  {
-    name: "AI 对话",
-    desc: "选择模型、上传文件，真实可用的站内对话。",
-    tag: "已上线",
-    live: true,
-    href: "/chat",
-  },
-  {
-    name: "多模型接入",
-    desc: "OpenAI 兼容接口与 Ollama 本地模型自由切换。",
-    tag: "已上线",
-    live: true,
-    href: "/chat",
-  },
-  {
-    name: "提示词实验室",
-    desc: "收藏、管理、测试你的提示词模板。",
-    tag: "规划中",
-    live: false,
-    href: "/tools",
-  },
-  {
-    name: "文章 AI 助读",
-    desc: "在文章页一键总结全文、解释术语。",
-    tag: "规划中",
-    live: false,
-    href: "/tools",
-  },
-];
-
 export default function HomePage() {
   const posts = getAllPosts().slice(0, 3);
+  const toolPreviews = getTools().slice(0, 4);
   const quickLinks = getLinkGroups()
     .flatMap((g) => g.links)
     .slice(0, 8);
@@ -132,29 +102,50 @@ export default function HomePage() {
           </Reveal>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {toolPreviews.map((tool, i) => (
-              <Reveal key={tool.name} delay={i * 0.08}>
-                <Link href={tool.href} className="block h-full">
-                  <div className="card-soft flex h-full flex-col p-6">
-                    <span
-                      className={`self-start rounded-md px-2.5 py-1 text-xs font-semibold ${
-                        tool.live
-                          ? "bg-[rgba(90,225,76,0.2)] text-[#1d7a12]"
-                          : "bg-cloud text-slate-mid"
-                      }`}
-                    >
-                      {tool.tag}
-                    </span>
-                    <h3 className="font-grotesk mt-4 text-lg font-bold">
-                      {tool.name}
-                    </h3>
-                    <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-mid">
-                      {tool.desc}
-                    </p>
-                  </div>
-                </Link>
-              </Reveal>
-            ))}
+            {toolPreviews.map((tool, i) => {
+              const card = (
+                <div className="card-soft flex h-full flex-col p-6">
+                  <span
+                    className={`self-start rounded-md px-2.5 py-1 text-xs font-semibold ${
+                      tool.live
+                        ? "bg-[rgba(90,225,76,0.2)] text-[#1d7a12]"
+                        : "bg-cloud text-slate-mid"
+                    }`}
+                  >
+                    {tool.status}
+                  </span>
+                  <h3 className="font-grotesk mt-4 text-lg font-bold">
+                    {tool.name}
+                  </h3>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-mid">
+                    {tool.desc}
+                  </p>
+                </div>
+              );
+              const external = /^https?:\/\//.test(tool.url);
+              return (
+                <Reveal key={tool.name} delay={i * 0.08}>
+                  {tool.url ? (
+                    external ? (
+                      <a
+                        href={tool.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block h-full"
+                      >
+                        {card}
+                      </a>
+                    ) : (
+                      <Link href={tool.url} className="block h-full">
+                        {card}
+                      </Link>
+                    )
+                  ) : (
+                    card
+                  )}
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </section>
