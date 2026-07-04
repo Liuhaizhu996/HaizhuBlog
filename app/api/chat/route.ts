@@ -20,20 +20,48 @@ import { normalizeOpenAiBase, normalizeOllamaBase } from "@/lib/ai";
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
 /**
- * 模型服务仅由站长控制：后台管理配置 > 环境变量。
- * 前台不再接受访客自定义服务地址/密钥。
+ * 模型服务仅由站长控制：后台多渠道配置 > 环境变量。
+ * 按「模型映射」解析：前台请求的别名 → 指定渠道 + 实际模型名。
  */
-function resolveConfig() {
-  const server = getSettings().ai;
-  const provider = server.baseUrl
-    ? server.provider
-    : (process.env.AI_PROVIDER as "openai" | "ollama") || "openai";
-  const raw = server.baseUrl || process.env.AI_BASE_URL || "";
-  // 归一化：允许站长填入带 /v1、/v1/chat/completions 等后缀的地址
-  const baseUrl =
-    provider === "ollama" ? normalizeOllamaBase(raw) : normalizeOpenAiBase(raw);
-  const apiKey = server.apiKey || process.env.AI_API_KEY || "";
-  return { provider, baseUrl, apiKey };
+function resolveModel(requested: string) {
+  const ai = getSettings().ai;
+
+  // 别名必须在映射表内，否则回退到第一条映射
+  const mapping =
+    ai.models.find((m) => m.alias === requested) ?? ai.models[0] ?? null;
+
+  const chosen =
+    (mapping &&
+      ai.providers.find((p) => p.id === mapping.providerId && p.baseUrl)) ||
+    ai.providers.find((p) => p.baseUrl) ||
+    null;
+
+  if (chosen) {
+    const baseUrl =
+      chosen.provider === "ollama"
+        ? normalizeOllamaBase(chosen.baseUrl)
+        : normalizeOpenAiBase(chosen.baseUrl);
+    return {
+      provider: chosen.provider,
+      baseUrl,
+      apiKey: chosen.apiKey,
+      model: mapping?.target || requested,
+    };
+  }
+
+  // 环境变量兜底（单服务，直接用别名请求）
+  const provider =
+    (process.env.AI_PROVIDER as "openai" | "ollama") || "openai";
+  const raw = process.env.AI_BASE_URL || "";
+  return {
+    provider,
+    baseUrl:
+      provider === "ollama"
+        ? normalizeOllamaBase(raw)
+        : normalizeOpenAiBase(raw),
+    apiKey: process.env.AI_API_KEY || "",
+    model: mapping?.target || requested,
+  };
 }
 
 /** 把上游的 OpenAI SSE 流转换为纯文本增量流 */
@@ -158,11 +186,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
   }
 
-  const { provider, baseUrl, apiKey } = resolveConfig();
-
-  // 模型必须在站长开放的列表内，否则回退到第一个
-  const allowed = getSettings().ai.models;
-  if (allowed.length && !allowed.includes(model)) model = allowed[0];
+  const { provider, baseUrl, apiKey, model: targetModel } = resolveModel(model);
+  model = targetModel;
 
   if (!baseUrl) return demoReply(messages);
 

@@ -19,16 +19,19 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const server = getSettings().ai;
     const userBase = body?.config?.baseUrl?.trim() || "";
     if (userBase) {
       provider = body?.config?.provider === "ollama" ? "ollama" : "openai";
       baseUrl = userBase;
       apiKey = body?.config?.apiKey?.trim() || "";
     } else {
-      provider = server.provider;
-      baseUrl = server.baseUrl || process.env.AI_BASE_URL || "";
-      apiKey = server.apiKey || process.env.AI_API_KEY || "";
+      // 未显式指定时，用第一个已配置的渠道或环境变量
+      const first = getSettings().ai.providers.find((p) => p.baseUrl);
+      provider =
+        first?.provider ??
+        (process.env.AI_PROVIDER === "ollama" ? "ollama" : "openai");
+      baseUrl = first?.baseUrl || process.env.AI_BASE_URL || "";
+      apiKey = first?.apiKey || process.env.AI_API_KEY || "";
     }
   } catch {
     return NextResponse.json({ error: "请求格式错误" }, { status: 400 });

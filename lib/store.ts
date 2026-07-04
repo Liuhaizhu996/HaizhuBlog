@@ -34,12 +34,24 @@ export function writeJson(name: string, value: unknown) {
 
 /* ---------- 站点设置 ---------- */
 
+export type AiProvider = {
+  id: string;
+  name: string; // 展示名，如「DeepSeek 官方」「本地 Ollama」
+  provider: "openai" | "ollama";
+  baseUrl: string;
+  apiKey: string;
+};
+
+export type ModelMapping = {
+  alias: string; // 前台展示 / 用户请求的模型名
+  providerId: string; // 使用哪个 API 服务
+  target: string; // 实际调用的模型名
+};
+
 export type SiteSettings = {
   ai: {
-    provider: "openai" | "ollama";
-    baseUrl: string;
-    apiKey: string;
-    models: string[];
+    providers: AiProvider[];
+    models: ModelMapping[];
   };
   tgbot: {
     enabled: boolean;
@@ -60,10 +72,11 @@ export type SiteSettings = {
 
 export const DEFAULT_SETTINGS: SiteSettings = {
   ai: {
-    provider: "openai",
-    baseUrl: "",
-    apiKey: "",
-    models: ["gpt-4o-mini", "gpt-4o", "deepseek-chat", "qwen-plus"],
+    providers: [],
+    models: [
+      { alias: "gpt-4o-mini", providerId: "", target: "gpt-4o-mini" },
+      { alias: "deepseek-chat", providerId: "", target: "deepseek-chat" },
+    ],
   },
   tgbot: {
     enabled: true,
@@ -82,10 +95,55 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   },
 };
 
+/** 旧版单服务配置（迁移用） */
+type LegacyAi = {
+  provider?: "openai" | "ollama";
+  baseUrl?: string;
+  apiKey?: string;
+  models?: unknown[];
+};
+
+function migrateAi(raw: unknown): SiteSettings["ai"] {
+  const ai = (raw ?? {}) as LegacyAi & Partial<SiteSettings["ai"]>;
+
+  // 新结构：providers 数组存在则直接使用
+  if (Array.isArray(ai.providers)) {
+    return {
+      providers: ai.providers,
+      models: Array.isArray(ai.models)
+        ? (ai.models as ModelMapping[]).filter(
+            (m) => typeof m === "object" && m !== null && "alias" in m
+          )
+        : DEFAULT_SETTINGS.ai.models,
+    };
+  }
+
+  // 旧结构：单 baseUrl + 字符串模型列表 → 迁移为一个服务 + 同名映射
+  if (typeof ai.baseUrl === "string" && ai.baseUrl) {
+    const id = "p-migrated";
+    return {
+      providers: [
+        {
+          id,
+          name: "默认服务",
+          provider: ai.provider === "ollama" ? "ollama" : "openai",
+          baseUrl: ai.baseUrl,
+          apiKey: ai.apiKey ?? "",
+        },
+      ],
+      models: (Array.isArray(ai.models) ? ai.models : [])
+        .filter((m): m is string => typeof m === "string")
+        .map((m) => ({ alias: m, providerId: id, target: m })),
+    };
+  }
+
+  return DEFAULT_SETTINGS.ai;
+}
+
 export function getSettings(): SiteSettings {
   const raw = readJson<SiteSettings>("settings.json", DEFAULT_SETTINGS);
   return {
-    ai: { ...DEFAULT_SETTINGS.ai, ...raw.ai },
+    ai: migrateAi(raw.ai),
     tgbot: { ...DEFAULT_SETTINGS.tgbot, ...raw.tgbot },
     contacts: { ...DEFAULT_SETTINGS.contacts, ...raw.contacts },
   };

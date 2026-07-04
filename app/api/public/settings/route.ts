@@ -17,8 +17,11 @@ export async function GET() {
     },
     contacts: s.contacts,
     serverAi: {
-      configured: Boolean(s.ai.baseUrl || process.env.AI_BASE_URL),
-      models: s.ai.models,
+      configured: Boolean(
+        s.ai.providers.some((p) => p.baseUrl) || process.env.AI_BASE_URL
+      ),
+      // 只下发展示用的模型别名，不暴露渠道与实际模型
+      models: s.ai.models.map((m) => m.alias),
     },
   });
 }

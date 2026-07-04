@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { PostMeta } from "@/lib/posts";
 import type { LinkGroup } from "@/lib/links";
-import type { SiteSettings, AiTool } from "@/lib/store";
+import type {
+  SiteSettings,
+  AiTool,
+  AiProvider,
+  ModelMapping,
+} from "@/lib/store";
 
 /* ================= 类型 ================= */
 
@@ -429,12 +434,13 @@ function SecurityPanel() {
   );
 }
 
-/* ================= AI 模型配置 ================= */
+/* ================= AI 模型配置（多渠道 + 模型映射） ================= */
 
 function AiPanel() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [msg, setMsg] = useState("");
-  const [fetchMsg, setFetchMsg] = useState("");
+  const [fetchMsgs, setFetchMsgs] = useState<Record<string, string>>({});
+  const [fetched, setFetched] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -442,41 +448,73 @@ function AiPanel() {
       .then((d) => setSettings(d.settings));
   }, []);
 
-  async function fetchModels() {
+  function setAi(patch: Partial<SiteSettings["ai"]>) {
+    setSettings((s) => (s ? { ...s, ai: { ...s.ai, ...patch } } : s));
+  }
+
+  function updateProvider(i: number, patch: Partial<AiProvider>) {
     if (!settings) return;
-    setFetchMsg("正在获取…");
+    setAi({
+      providers: settings.ai.providers.map((p, j) =>
+        j === i ? { ...p, ...patch } : p
+      ),
+    });
+  }
+
+  function updateMapping(i: number, patch: Partial<ModelMapping>) {
+    if (!settings) return;
+    setAi({
+      models: settings.ai.models.map((m, j) =>
+        j === i ? { ...m, ...patch } : m
+      ),
+    });
+  }
+
+  /** 拉取某个渠道的可用模型 */
+  async function fetchModels(p: AiProvider) {
+    setFetchMsgs((s) => ({ ...s, [p.id]: "正在获取…" }));
     let res: Response;
     try {
       res = await fetch("/api/models", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          config: {
-            provider: settings.ai.provider,
-            baseUrl: settings.ai.baseUrl,
-            apiKey: settings.ai.apiKey,
-          },
+          config: { provider: p.provider, baseUrl: p.baseUrl, apiKey: p.apiKey },
         }),
       });
     } catch {
-      setFetchMsg("无法连接站点后端，请检查站点服务是否正常");
+      setFetchMsgs((s) => ({ ...s, [p.id]: "无法连接站点后端" }));
       return;
     }
     let d: { error?: string; models?: string[] };
     try {
       d = await res.json();
     } catch {
-      setFetchMsg(`站点后端返回异常（HTTP ${res.status}），请查看服务器日志`);
+      setFetchMsgs((s) => ({ ...s, [p.id]: `站点后端返回异常（HTTP ${res.status}）` }));
       return;
     }
     if (d.error) {
-      setFetchMsg(d.error);
+      setFetchMsgs((s) => ({ ...s, [p.id]: d.error! }));
     } else if (Array.isArray(d.models) && d.models.length) {
-      setSettings({ ...settings, ai: { ...settings.ai, models: d.models } });
-      setFetchMsg(`已获取 ${d.models.length} 个模型，记得保存`);
+      setFetched((s) => ({ ...s, [p.id]: d.models! }));
+      setFetchMsgs((s) => ({
+        ...s,
+        [p.id]: `获取到 ${d.models!.length} 个模型，可点「导入全部」生成映射`,
+      }));
     } else {
-      setFetchMsg("服务未返回模型，保留当前列表");
+      setFetchMsgs((s) => ({ ...s, [p.id]: "服务未返回模型" }));
     }
+  }
+
+  /** 把某渠道获取到的模型批量导入映射表（别名=实际模型名，跳过已存在的别名） */
+  function importModels(p: AiProvider) {
+    if (!settings) return;
+    const existing = new Set(settings.ai.models.map((m) => m.alias));
+    const added = (fetched[p.id] ?? [])
+      .filter((m) => !existing.has(m))
+      .map((m) => ({ alias: m, providerId: p.id, target: m }));
+    setAi({ models: [...settings.ai.models, ...added] });
+    setFetchMsgs((s) => ({ ...s, [p.id]: `已导入 ${added.length} 条映射，记得保存` }));
   }
 
   async function save() {
@@ -487,94 +525,224 @@ function AiPanel() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ settings }),
     });
-    setMsg(res.ok ? "✅ 已保存，对话页立即生效" : "❌ 保存失败");
+    const d = await res.json();
+    if (res.ok) {
+      setSettings(d.settings);
+      setMsg("✅ 已保存，对话页立即生效");
+    } else {
+      setMsg(`❌ ${d.error ?? "保存失败"}`);
+    }
   }
 
   if (!settings) return <p className="text-sm text-slate-mid">加载中…</p>;
 
+  const providers = settings.ai.providers;
+  const mappings = settings.ai.models;
+
   return (
-    <div className="card-soft max-w-2xl p-6">
-      <h2 className="font-grotesk text-lg font-bold">站点内置 AI 服务</h2>
-      <p className="mt-1 text-xs leading-relaxed text-slate-mid">
-        在这里配置后，所有访客无需自行填写服务地址即可对话；密钥只保存在服务器
-        data/ 目录，不会下发给浏览器。访客也仍可在对话页用自己的服务覆盖。
-      </p>
-      <div className="mt-5 grid gap-4">
-        <label className="block text-xs font-semibold text-slate-mid">
-          服务类型
-          <select
-            value={settings.ai.provider}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                ai: { ...settings.ai, provider: e.target.value as "openai" | "ollama" },
+    <div className="max-w-4xl space-y-8">
+      {/* ---------- API 服务列表 ---------- */}
+      <div className="card-soft p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-grotesk text-lg font-bold">API 服务</h2>
+            <p className="mt-1 text-xs leading-relaxed text-slate-mid">
+              可添加多个服务（OpenAI 兼容 / Ollama）。密钥只保存在服务器
+              data/ 目录，不会下发给浏览器。
+            </p>
+          </div>
+          <button
+            onClick={() =>
+              setAi({
+                providers: [
+                  ...providers,
+                  {
+                    id: `p-${Date.now().toString(36)}`,
+                    name: `服务 ${providers.length + 1}`,
+                    provider: "openai",
+                    baseUrl: "",
+                    apiKey: "",
+                  },
+                ],
               })
             }
-            className="mt-1 w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+            className="rounded-lg border border-hairline px-4 py-2 text-sm text-slate-mid hover:border-black hover:text-black"
           >
-            <option value="openai">OpenAI 兼容接口（DeepSeek / 通义 / 硅基流动 / OneAPI…）</option>
-            <option value="ollama">Ollama</option>
-          </select>
-        </label>
-        <label className="block text-xs font-semibold text-slate-mid">
-          服务地址 Base URL
-          <input
-            value={settings.ai.baseUrl}
-            onChange={(e) =>
-              setSettings({ ...settings, ai: { ...settings.ai, baseUrl: e.target.value } })
-            }
-            placeholder="https://api.deepseek.com"
-            className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
-          />
-        </label>
-        <label className="block text-xs font-semibold text-slate-mid">
-          API Key
-          <input
-            type="password"
-            value={settings.ai.apiKey}
-            onChange={(e) =>
-              setSettings({ ...settings, ai: { ...settings.ai, apiKey: e.target.value } })
-            }
-            placeholder="sk-…"
-            className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
-          />
-        </label>
-        <label className="block text-xs font-semibold text-slate-mid">
-          开放给访客的模型（逗号分隔；前台只能从这里选择）
-          <div className="mt-1 flex gap-2">
-            <input
-              value={settings.ai.models.join(", ")}
-              onChange={(e) =>
-                setSettings({
-                  ...settings,
-                  ai: {
-                    ...settings.ai,
-                    models: e.target.value.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
-                  },
-                })
-              }
-              className="w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
-            />
-            <button
-              type="button"
-              onClick={fetchModels}
-              className="btn-black shrink-0 rounded-lg px-3 py-2 text-xs font-medium"
-            >
-              自动获取
-            </button>
-          </div>
-          {fetchMsg && (
-            <span className="mt-1 block whitespace-pre-line break-all text-xs font-normal text-slate-mid">
-              {fetchMsg}
-            </span>
+            + 添加 API
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-4">
+          {providers.length === 0 && (
+            <p className="rounded-lg bg-cloud px-4 py-3 text-xs text-slate-mid">
+              还没有 API 服务。点右上角「+ 添加 API」，未配置时前台为演示模式。
+            </p>
           )}
-        </label>
+          {providers.map((p, i) => (
+            <div key={p.id} className="rounded-xl border border-hairline p-4">
+              <div className="grid gap-3 md:grid-cols-[1fr_1.4fr]">
+                <input
+                  value={p.name}
+                  placeholder="服务名称（如 DeepSeek 官方）"
+                  onChange={(e) => updateProvider(i, { name: e.target.value })}
+                  className="rounded-lg border border-hairline px-3 py-2 text-sm font-bold outline-none focus:border-black"
+                />
+                <select
+                  value={p.provider}
+                  onChange={(e) =>
+                    updateProvider(i, {
+                      provider: e.target.value as "openai" | "ollama",
+                    })
+                  }
+                  className="rounded-lg border border-hairline bg-white px-3 py-2 text-sm outline-none focus:border-black"
+                >
+                  <option value="openai">
+                    OpenAI 兼容（DeepSeek / 通义 / 硅基流动 / OneAPI…）
+                  </option>
+                  <option value="ollama">Ollama</option>
+                </select>
+                <input
+                  value={p.baseUrl}
+                  placeholder="服务地址，如 https://api.deepseek.com"
+                  onChange={(e) => updateProvider(i, { baseUrl: e.target.value })}
+                  className="rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-black"
+                />
+                <input
+                  type="password"
+                  value={p.apiKey}
+                  placeholder="API Key（Ollama 可留空）"
+                  onChange={(e) => updateProvider(i, { apiKey: e.target.value })}
+                  className="rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-black"
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => fetchModels(p)}
+                  className="btn-black rounded-lg px-3 py-1.5 text-xs font-medium"
+                >
+                  获取模型
+                </button>
+                {fetched[p.id]?.length ? (
+                  <button
+                    onClick={() => importModels(p)}
+                    className="rounded-lg border border-hairline px-3 py-1.5 text-xs text-slate-mid hover:border-black hover:text-black"
+                  >
+                    导入全部（{fetched[p.id].length}）
+                  </button>
+                ) : null}
+                <button
+                  onClick={() =>
+                    setAi({
+                      providers: providers.filter((_, j) => j !== i),
+                      models: mappings.map((m) =>
+                        m.providerId === p.id ? { ...m, providerId: "" } : m
+                      ),
+                    })
+                  }
+                  className="ml-auto rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:border-red-500"
+                >
+                  删除服务
+                </button>
+              </div>
+              {fetchMsgs[p.id] && (
+                <p className="mt-2 whitespace-pre-line break-all text-xs text-slate-mid">
+                  {fetchMsgs[p.id]}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="mt-5 flex items-center gap-3">
-        <button onClick={save} className="btn-black rounded-lg px-6 py-2.5 text-sm font-semibold">
-          保存配置
-        </button>
-        {msg && <span className="text-xs text-slate-mid">{msg}</span>}
+
+      {/* ---------- 模型映射 ---------- */}
+      <div className="card-soft p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-grotesk text-lg font-bold">模型映射</h2>
+            <p className="mt-1 text-xs leading-relaxed text-slate-mid">
+              前台展示的模型名 → 实际调用的服务与模型。访客只能看到并请求「展示名」，
+              真实渠道与模型名不会暴露。
+            </p>
+          </div>
+          <button
+            onClick={() =>
+              setAi({
+                models: [
+                  ...mappings,
+                  { alias: "", providerId: providers[0]?.id ?? "", target: "" },
+                ],
+              })
+            }
+            className="rounded-lg border border-hairline px-4 py-2 text-sm text-slate-mid hover:border-black hover:text-black"
+          >
+            + 添加映射
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          {mappings.length === 0 && (
+            <p className="rounded-lg bg-cloud px-4 py-3 text-xs text-slate-mid">
+              还没有模型映射，前台将无模型可选。
+            </p>
+          )}
+          {mappings.map((m, i) => (
+            <div
+              key={i}
+              className="grid items-center gap-2 md:grid-cols-[1.2fr_auto_1.2fr_1.2fr_auto]"
+            >
+              <input
+                value={m.alias}
+                placeholder="前台展示名，如 极速模型"
+                onChange={(e) => updateMapping(i, { alias: e.target.value })}
+                className="rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-black"
+              />
+              <span className="hidden text-center text-black/30 md:block">→</span>
+              <select
+                value={m.providerId}
+                onChange={(e) => updateMapping(i, { providerId: e.target.value })}
+                className="rounded-lg border border-hairline bg-white px-3 py-2 text-sm outline-none focus:border-black"
+              >
+                <option value="">（未指定服务）</option>
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={m.target}
+                placeholder="实际模型名，如 deepseek-chat"
+                list={`models-${m.providerId}`}
+                onChange={(e) => updateMapping(i, { target: e.target.value })}
+                className="rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-black"
+              />
+              <button
+                onClick={() =>
+                  setAi({ models: mappings.filter((_, j) => j !== i) })
+                }
+                className="rounded-lg border border-red-200 px-3 py-2 text-xs text-red-500 hover:border-red-500"
+              >
+                删
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* 为每个渠道提供已获取模型的输入建议 */}
+        {Object.entries(fetched).map(([pid, list]) => (
+          <datalist key={pid} id={`models-${pid}`}>
+            {list.map((m) => (
+              <option key={m} value={m} />
+            ))}
+          </datalist>
+        ))}
+
+        <div className="mt-5 flex items-center gap-3">
+          <button onClick={save} className="btn-black rounded-lg px-6 py-2.5 text-sm font-semibold">
+            保存全部配置
+          </button>
+          {msg && <span className="text-xs text-slate-mid">{msg}</span>}
+        </div>
       </div>
     </div>
   );

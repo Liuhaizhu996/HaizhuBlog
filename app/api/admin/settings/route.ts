@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest, unauthorized } from "@/lib/auth";
-import { getSettings, saveSettings, type SiteSettings } from "@/lib/store";
+import {
+  getSettings,
+  saveSettings,
+  type SiteSettings,
+  type AiProvider,
+  type ModelMapping,
+} from "@/lib/store";
 
 /** GET：完整站点设置（含 AI 密钥，仅管理员可见） */
 export async function GET(req: Request) {
@@ -14,15 +20,35 @@ export async function PUT(req: Request) {
   try {
     const body = await req.json();
     const cur = getSettings();
+    const rawProviders = body?.settings?.ai?.providers;
+    const providers: AiProvider[] = Array.isArray(rawProviders)
+      ? rawProviders
+          .map((p: Partial<AiProvider>, i: number) => ({
+            id: String(p.id || `p-${Date.now().toString(36)}-${i}`),
+            name: String(p.name ?? "").trim() || `服务 ${i + 1}`,
+            provider: p.provider === "ollama" ? ("ollama" as const) : ("openai" as const),
+            baseUrl: String(p.baseUrl ?? "").trim(),
+            apiKey: String(p.apiKey ?? "").trim(),
+          }))
+          .filter((p: AiProvider) => p.baseUrl)
+      : cur.ai.providers;
+
+    const validIds = new Set(providers.map((p) => p.id));
+    const rawModels = body?.settings?.ai?.models;
+    const models: ModelMapping[] = Array.isArray(rawModels)
+      ? rawModels
+          .map((m: Partial<ModelMapping>) => ({
+            alias: String(m.alias ?? "").trim(),
+            providerId: validIds.has(String(m.providerId))
+              ? String(m.providerId)
+              : "",
+            target: String(m.target ?? "").trim(),
+          }))
+          .filter((m: ModelMapping) => m.alias && m.target)
+      : cur.ai.models;
+
     const next: SiteSettings = {
-      ai: {
-        provider: body?.settings?.ai?.provider === "ollama" ? "ollama" : "openai",
-        baseUrl: String(body?.settings?.ai?.baseUrl ?? cur.ai.baseUrl).trim(),
-        apiKey: String(body?.settings?.ai?.apiKey ?? cur.ai.apiKey).trim(),
-        models: Array.isArray(body?.settings?.ai?.models)
-          ? body.settings.ai.models.map(String).filter(Boolean)
-          : cur.ai.models,
-      },
+      ai: { providers, models },
       tgbot: {
         enabled: Boolean(body?.settings?.tgbot?.enabled),
         botUsername: String(body?.settings?.tgbot?.botUsername ?? "")
