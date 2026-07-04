@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSettings } from "@/lib/store";
 
 /**
  * 拉取模型列表：
@@ -14,10 +15,21 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    provider = body?.config?.provider === "ollama" ? "ollama" : "openai";
-    baseUrl = (body?.config?.baseUrl?.trim() || process.env.AI_BASE_URL || "")
-      .replace(/\/+$/, "");
-    apiKey = body?.config?.apiKey?.trim() || process.env.AI_API_KEY || "";
+    const server = getSettings().ai;
+    const userBase = body?.config?.baseUrl?.trim() || "";
+    if (userBase) {
+      provider = body?.config?.provider === "ollama" ? "ollama" : "openai";
+      baseUrl = userBase.replace(/\/+$/, "");
+      apiKey = body?.config?.apiKey?.trim() || "";
+    } else {
+      provider = server.baseUrl
+        ? server.provider
+        : process.env.AI_PROVIDER === "ollama"
+          ? "ollama"
+          : "openai";
+      baseUrl = (server.baseUrl || process.env.AI_BASE_URL || "").replace(/\/+$/, "");
+      apiKey = server.apiKey || process.env.AI_API_KEY || "";
+    }
   } catch {
     return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
   }

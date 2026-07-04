@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSettings } from "@/lib/store";
 
 /**
  * 站内 AI 对话接口。
@@ -23,14 +24,24 @@ type ClientConfig = {
   apiKey?: string;
 };
 
+/** 配置优先级：访客浏览器配置 > 后台管理配置 > 环境变量 */
 function resolveConfig(config: ClientConfig | undefined) {
-  const provider =
-    config?.provider ||
-    (process.env.AI_PROVIDER as "openai" | "ollama") ||
-    "openai";
-  const baseUrl = (config?.baseUrl?.trim() || process.env.AI_BASE_URL || "")
-    .replace(/\/+$/, "");
-  const apiKey = config?.apiKey?.trim() || process.env.AI_API_KEY || "";
+  const server = getSettings().ai;
+  const userBase = config?.baseUrl?.trim() || "";
+  const provider = userBase
+    ? config?.provider || "openai"
+    : server.baseUrl
+      ? server.provider
+      : (process.env.AI_PROVIDER as "openai" | "ollama") || "openai";
+  const baseUrl = (
+    userBase ||
+    server.baseUrl ||
+    process.env.AI_BASE_URL ||
+    ""
+  ).replace(/\/+$/, "");
+  const apiKey = userBase
+    ? config?.apiKey?.trim() || ""
+    : server.apiKey || process.env.AI_API_KEY || "";
   return { provider, baseUrl, apiKey };
 }
 

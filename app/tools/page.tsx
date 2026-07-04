@@ -59,7 +59,7 @@ export default function ToolsPage() {
         <p className="font-grotesk text-sm font-semibold text-[#2aa11d]">
           AI TOOLKIT
         </p>
-        <h1 className="font-grotesk mt-1 text-4xl font-bold tracking-[-1.5px] md:text-5xl">
+        <h1 className="font-display mt-1 text-5xl text-black md:text-6xl">
           AI 工具广场
         </h1>
         <p className="mt-4 max-w-xl text-slate-mid">

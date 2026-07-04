@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { getAllPosts } from "@/lib/posts";
-import { linkGroups } from "@/lib/links";
+import { getLinkGroups } from "@/lib/store";
 import Reveal from "@/components/motion/Reveal";
 import VideoBackground from "@/components/VideoBackground";
-import HeroAsk from "@/components/HeroAsk";
 import PostCard from "@/components/PostCard";
-import { Star, ExternalLink } from "@/components/icons";
+import { ExternalLink } from "@/components/icons";
+
+// 文章与导航都可在后台随时变更，首页始终取最新数据
+export const dynamic = "force-dynamic";
 
 const toolPreviews = [
   {
@@ -38,46 +40,52 @@ const toolPreviews = [
   },
 ];
 
-const quickLinks = linkGroups.flatMap((g) => g.links).slice(0, 8);
-
 export default function HomePage() {
   const posts = getAllPosts().slice(0, 3);
+  const quickLinks = getLinkGroups()
+    .flatMap((g) => g.links)
+    .slice(0, 8);
 
   return (
     <div>
-      {/* ============ Hero（视频背景） ============ */}
-      <section className="relative flex min-h-screen flex-col justify-center overflow-hidden px-6 lg:px-[120px]">
+      {/* ============ 电影感 Hero（循环视频背景） ============ */}
+      <section className="relative min-h-screen w-full overflow-hidden">
         <VideoBackground />
 
-        {/* 提示词规格：内容上移 50px；徽章→标题 34px、标题→副标题 34px、副标题→提问框 44px */}
-        <div className="relative -mt-[50px] flex flex-col items-center pt-24 text-center">
-          {/* 徽章组件 */}
-          <div className="flex items-center rounded-full bg-white/90 py-1 pl-1 pr-4 text-sm shadow-md shadow-black/5">
-            <span className="mr-2.5 flex items-center gap-1 rounded-full bg-badge-dark px-2.5 py-1 text-xs font-medium text-white">
-              <Star className="h-3 w-3 text-lime" />
-              New
-            </span>
-            <span className="font-body text-sm text-black/80">
-              站内 AI 对话已支持选模型与传文件
-            </span>
-          </div>
-
-          {/* 主标题：Fustat Bold 80px */}
-          <h1 className="font-display mt-[34px] max-w-4xl text-5xl font-bold leading-none tracking-[-2px] md:text-[80px] md:tracking-[-4.8px]">
-            边读边问
-            <br className="md:hidden" />
-            ，学得更快
+        <div
+          className="relative z-10 flex flex-col items-center justify-center px-6 pb-40 text-center"
+          style={{ paddingTop: "calc(8rem - 75px + 96px)" }}
+        >
+          {/* 主标题：Instrument Serif，行高 0.95，斜体灰字强调 */}
+          <h1
+            className="font-display animate-fade-rise max-w-7xl text-5xl font-normal text-black sm:text-7xl md:text-8xl"
+            style={{ lineHeight: 0.95, letterSpacing: "-2.46px" }}
+          >
+            穿过<em className="italic text-[#6F6F6F]">喧嚣</em>，
+            <br className="hidden sm:block" />
+            构筑属于你的<em className="italic text-[#6F6F6F]">知识之境。</em>
           </h1>
 
-          {/* 副标题：Fustat Medium 20px #505050 */}
-          <p className="font-display mt-[34px] max-w-[736px] text-lg font-medium tracking-[-0.4px] text-slate-mid md:text-xl">
-            上传你的资料，向开源 AI 提问，即刻获得答案。
-            读文章、学教程、聊模型，一个站点全部搞定。
+          {/* 描述 */}
+          <p className="animate-fade-rise-delay mt-8 max-w-2xl text-base leading-relaxed text-[#6F6F6F] sm:text-lg">
+            为求知者、创造者与深思者搭建的数字居所 ——
+            在这里阅读资讯与教程、记录日常，并与开源 AI 深入对话，回归纯粹心流。
           </p>
 
-          {/* 提问框 */}
-          <div className="mt-[44px] w-full">
-            <HeroAsk />
+          {/* CTA */}
+          <div className="animate-fade-rise-delay-2 mt-12 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href="/chat"
+              className="rounded-full bg-black px-14 py-5 text-base text-white transition-transform duration-200 hover:scale-[1.03]"
+            >
+              开始旅程
+            </Link>
+            <Link
+              href="/blog"
+              className="link-under text-base text-[#6F6F6F] hover:text-black"
+            >
+              浏览文章 →
+            </Link>
           </div>
         </div>
       </section>
@@ -87,14 +95,12 @@ export default function HomePage() {
         <Reveal>
           <div className="mb-10 flex items-end justify-between">
             <div>
-              <p className="font-grotesk text-sm font-semibold text-[#2aa11d]">
-                BLOG
-              </p>
-              <h2 className="font-grotesk mt-1 text-3xl font-bold tracking-[-1px] md:text-4xl">
+              <p className="text-sm font-medium text-[#6F6F6F]">Journal</p>
+              <h2 className="font-display mt-1 text-4xl text-black md:text-5xl">
                 最新文章
               </h2>
             </div>
-            <Link href="/blog" className="link-under text-sm text-slate-mid">
+            <Link href="/blog" className="link-under text-sm text-[#6F6F6F]">
               全部文章 →
             </Link>
           </div>
@@ -113,19 +119,17 @@ export default function HomePage() {
       <section className="bg-cloud/70 py-20">
         <div className="mx-auto max-w-6xl px-6">
           <Reveal>
-            <p className="font-grotesk text-sm font-semibold text-[#2aa11d]">
-              AI TOOLKIT
-            </p>
-            <h2 className="font-grotesk mt-1 text-3xl font-bold tracking-[-1px] md:text-4xl">
+            <p className="text-sm font-medium text-[#6F6F6F]">Studio</p>
+            <h2 className="font-display mt-1 text-4xl text-black md:text-5xl">
               AI 工具，长在站点里
             </h2>
-            <p className="mt-3 max-w-lg text-slate-mid">
-              对话工具已真实可用 —— 支持 OpenAI 兼容接口与 Ollama
+            <p className="mt-4 max-w-lg text-[#6F6F6F]">
+              对话工具真实可用 —— 支持 OpenAI 兼容接口与 Ollama
               本地模型，还能上传文件让 AI 帮你处理。
             </p>
           </Reveal>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {toolPreviews.map((tool, i) => (
               <Reveal key={tool.name} delay={i * 0.08}>
                 <Link href={tool.href} className="block h-full">
@@ -153,22 +157,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ============ 站点导航（友情快捷链接） ============ */}
+      {/* ============ 站点导航 ============ */}
       <section className="mx-auto max-w-6xl px-6 py-20">
         <Reveal>
           <div className="mb-10 flex items-end justify-between">
             <div>
-              <p className="font-grotesk text-sm font-semibold text-[#2aa11d]">
-                LINKS
-              </p>
-              <h2 className="font-grotesk mt-1 text-3xl font-bold tracking-[-1px] md:text-4xl">
+              <p className="text-sm font-medium text-[#6F6F6F]">Links</p>
+              <h2 className="font-display mt-1 text-4xl text-black md:text-5xl">
                 站点导航
               </h2>
-              <p className="mt-3 max-w-lg text-slate-mid">
-                精选的开源项目与实用站点，无广告、无跟踪。
+              <p className="mt-4 max-w-lg text-[#6F6F6F]">
+                精选的开源项目与实用站点，无广告、无跟踪，内容由站长在后台维护。
               </p>
             </div>
-            <Link href="/links" className="link-under text-sm text-slate-mid">
+            <Link href="/links" className="link-under text-sm text-[#6F6F6F]">
               全部链接 →
             </Link>
           </div>
@@ -199,26 +201,19 @@ export default function HomePage() {
       {/* ============ CTA ============ */}
       <section className="mx-auto max-w-6xl px-6 pb-4">
         <Reveal>
-          <div className="rounded-3xl bg-badge-dark px-8 py-14 text-center text-white md:py-16">
-            <h2 className="font-grotesk text-3xl font-bold tracking-[-1px] md:text-4xl">
-              准备好一起<span className="text-lime">边聊边学</span>了吗？
+          <div className="rounded-3xl bg-black px-8 py-14 text-center text-white md:py-16">
+            <h2 className="font-display text-4xl md:text-5xl">
+              准备好一起<em className="italic text-lime">边聊边学</em>了吗？
             </h2>
             <p className="mx-auto mt-4 max-w-md text-white/70">
-              连接你自己的模型服务（OpenAI 兼容 / Ollama），
-              或先用演示模式感受交互。
+              到 AI 对话页选择模型、上传文件，或先去读几篇文章。
             </p>
             <div className="mt-8 flex justify-center gap-3">
               <Link
                 href="/chat"
-                className="btn-lime rounded-lg px-7 py-3 text-sm font-bold"
+                className="rounded-full bg-white px-10 py-3.5 text-sm font-semibold text-black transition-transform hover:scale-[1.03]"
               >
                 开始对话
-              </Link>
-              <Link
-                href="/blog"
-                className="rounded-lg border border-white/25 px-7 py-3 text-sm font-medium text-white transition hover:bg-white/10"
-              >
-                先去读文章
               </Link>
             </div>
           </div>

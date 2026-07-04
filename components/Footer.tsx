@@ -1,17 +1,16 @@
 import Link from "next/link";
-import { linkGroups } from "@/lib/links";
-
-const friendLinks = linkGroups
-  .flatMap((g) => g.links)
-  .slice(0, 6);
+import { getLinkGroups } from "@/lib/store";
 
 export default function Footer() {
+  const friendLinks = getLinkGroups()
+    .flatMap((g) => g.links)
+    .slice(0, 6);
   return (
     <footer className="mt-24 border-t border-hairline bg-cloud/60">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-[2fr_1fr_1fr]">
         <div>
-          <p className="font-grotesk text-2xl font-semibold tracking-[-1.44px]">
-            Haizhu<span className="text-[#2aa11d]">AI</span>
+          <p className="font-display text-3xl tracking-tight text-black">
+            HaizhuAI<sup className="text-sm">®</sup>
           </p>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-mid">
             分享资讯、教程与日常，并集成开源 AI 对话工具 ——
@@ -54,8 +53,11 @@ export default function Footer() {
         </nav>
       </div>
       <div className="border-t border-hairline">
-        <p className="mx-auto max-w-6xl px-6 py-5 text-xs text-slate-mid">
-          © {new Date().getFullYear()} HaizhuAI · 用心分享每一篇内容 · 无广告，无跟踪
+        <p className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-6 py-5 text-xs text-slate-mid">
+          <span>© {new Date().getFullYear()} HaizhuAI · 用心分享每一篇内容 · 无广告，无跟踪</span>
+          <Link href="/admin" className="text-black/30 transition-colors hover:text-black">
+            管理
+          </Link>
         </p>
       </div>
     </footer>

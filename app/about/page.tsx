@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Reveal from "@/components/motion/Reveal";
+import { getSettings } from "@/lib/store";
 
 export const metadata: Metadata = {
   title: "关于",
-  description: "关于 HaizhuAI：一个不止于博客的站点。",
+  description: "关于 HaizhuAI：一个不止于博客的站点，以及站长的联系方式。",
 };
+
+// 联系方式可在后台修改，保持动态渲染
+export const dynamic = "force-dynamic";
 
 const milestones = [
   {
     label: "站点框架上线",
-    desc: "现代浅色 UI · 博客系统 · 视频背景 Hero",
+    desc: "电影感视频 Hero · 博客系统 · 现代浅色 UI",
     done: true,
   },
   {
@@ -19,8 +23,8 @@ const milestones = [
     done: true,
   },
   {
-    label: "站点导航",
-    desc: "精选开源项目与实用站点，无广告",
+    label: "管理后台",
+    desc: "文章发布、AI 模型、站点导航、客服配置全部后台化",
     done: true,
   },
   {
@@ -36,11 +40,31 @@ const milestones = [
 ];
 
 export default function AboutPage() {
+  const { contacts } = getSettings();
+
+  const contactCards = [
+    { label: "WeChat", value: contacts.wechat, href: null, icon: "💚" },
+    { label: "QQ", value: contacts.qq, href: null, icon: "🐧" },
+    {
+      label: "Blog",
+      value: contacts.blog,
+      href: `https://${contacts.blog.replace(/^https?:\/\//, "")}`,
+      icon: "📝",
+    },
+    { label: "Telegram", value: contacts.telegram, href: null, icon: "✈️" },
+    {
+      label: "WhatsApp",
+      value: contacts.whatsapp,
+      href: `https://wa.me/${contacts.whatsapp.replace(/[^\d]/g, "")}`,
+      icon: "📱",
+    },
+  ];
+
   return (
     <div className="mx-auto max-w-3xl px-6 pt-28">
       <Reveal>
-        <p className="font-grotesk text-sm font-semibold text-[#2aa11d]">ABOUT</p>
-        <h1 className="font-grotesk mt-1 text-4xl font-bold tracking-[-1.5px] md:text-5xl">
+        <p className="text-sm font-medium text-[#6F6F6F]">About</p>
+        <h1 className="font-display mt-1 text-5xl text-black md:text-6xl">
           关于本站
         </h1>
         <div className="prose-haizhu mt-6">
@@ -53,8 +77,45 @@ export default function AboutPage() {
         </div>
       </Reveal>
 
-      <Reveal delay={0.15}>
-        <h2 className="font-grotesk mt-14 text-2xl font-bold">路线图</h2>
+      {/* 联系方式 */}
+      <Reveal delay={0.1}>
+        <h2 className="font-display mt-14 text-3xl">联系站长</h2>
+        <p className="mt-2 text-sm text-[#6F6F6F]">
+          合作、反馈、闲聊都欢迎。也可以点击右下角的 💬 浮窗直接对话。
+        </p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {contactCards.map((c) => {
+            const body = (
+              <div className="card-soft flex items-center gap-4 p-5">
+                <span className="text-2xl">{c.icon}</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-[#6F6F6F]">
+                    {c.label}
+                  </p>
+                  <p className="mt-0.5 truncate text-sm font-semibold">
+                    {c.value}
+                  </p>
+                </div>
+              </div>
+            );
+            return c.href ? (
+              <a
+                key={c.label}
+                href={c.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {body}
+              </a>
+            ) : (
+              <div key={c.label}>{body}</div>
+            );
+          })}
+        </div>
+      </Reveal>
+
+      <Reveal delay={0.2}>
+        <h2 className="font-display mt-14 text-3xl">路线图</h2>
         <ol className="mt-6 space-y-4 pb-10">
           {milestones.map((m, i) => (
             <li key={m.label} className="card-soft flex items-start gap-4 p-5">
@@ -79,11 +140,11 @@ export default function AboutPage() {
       <Reveal delay={0.25}>
         <div className="card-soft mb-16 p-8 text-center">
           <p className="text-sm text-slate-mid">
-            想试试真实的 AI 对话？带上你的模型服务地址来。
+            想试试真实的 AI 对话？带上你的问题来。
           </p>
           <Link
             href="/chat"
-            className="btn-black mt-4 inline-block rounded-lg px-7 py-3 text-sm font-semibold"
+            className="mt-4 inline-block rounded-full bg-black px-8 py-3 text-sm text-white transition-transform hover:scale-[1.03]"
           >
             去对话页 →
           </Link>

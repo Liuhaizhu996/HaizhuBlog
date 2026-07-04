@@ -55,11 +55,8 @@ export default function Navbar() {
     >
       {/* 提示词规格：水平 120px / 垂直 16px 内边距 */}
       <nav className="flex items-center justify-between px-6 py-4 lg:px-[120px]">
-        <Link
-          href="/"
-          className="font-grotesk text-2xl font-semibold tracking-[-1.44px]"
-        >
-          Haizhu<span className="text-[#2aa11d]">AI</span>
+        <Link href="/" className="font-display text-3xl tracking-tight text-black">
+          HaizhuAI<sup className="text-sm">®</sup>
         </Link>
 
         {/* 桌面导航（Schibsted Grotesk Medium 16px, -0.2px tracking） */}
@@ -76,8 +73,8 @@ export default function Navbar() {
                 <li key={item.href} ref={dropdownRef} className="relative">
                   <button
                     onClick={() => setDropdown((v) => !v)}
-                    className={`font-grotesk flex items-center gap-1 text-base font-medium tracking-[-0.2px] transition-colors ${
-                      active ? "text-black" : "text-slate-mid hover:text-black"
+                    className={`flex items-center gap-1 text-sm transition-colors ${
+                      active ? "text-black" : "text-[#6F6F6F] hover:text-black"
                     }`}
                   >
                     {item.label}
@@ -109,8 +106,8 @@ export default function Navbar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`font-grotesk text-base font-medium tracking-[-0.2px] transition-colors ${
-                    active ? "text-black" : "text-slate-mid hover:text-black"
+                  className={`text-sm transition-colors ${
+                    active ? "text-black" : "text-[#6F6F6F] hover:text-black"
                   }`}
                 >
                   {item.label}
@@ -120,17 +117,11 @@ export default function Navbar() {
           })}
         </ul>
 
-        {/* 右侧按钮组 */}
-        <div className="hidden items-center gap-2 md:flex">
-          <Link
-            href="/links"
-            className="btn-ghost font-grotesk rounded-lg px-4 py-2 text-sm font-medium"
-          >
-            导航
-          </Link>
+        {/* 右侧 CTA */}
+        <div className="hidden items-center md:flex">
           <Link
             href="/chat"
-            className="btn-black font-grotesk rounded-lg px-5 py-2 text-sm font-medium"
+            className="rounded-full bg-black px-6 py-2.5 text-sm text-white transition-transform duration-200 hover:scale-[1.03]"
           >
             开始对话
           </Link>

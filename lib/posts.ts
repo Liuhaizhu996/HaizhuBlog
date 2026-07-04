@@ -44,6 +44,55 @@ export function getAllPosts(): PostMeta[] {
     .sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
+/** 后台发布/更新文章：写入 content/posts/<slug>.md */
+export function savePost(input: {
+  slug: string;
+  title: string;
+  date: string;
+  category: string;
+  excerpt: string;
+  content: string;
+}) {
+  if (!fs.existsSync(postsDir)) fs.mkdirSync(postsDir, { recursive: true });
+  const slug = input.slug
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9一-鿿-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (!slug) throw new Error("slug 不能为空");
+  const fm = matter.stringify(input.content, {
+    title: input.title,
+    date: input.date,
+    category: input.category,
+    excerpt: input.excerpt,
+  });
+  fs.writeFileSync(path.join(postsDir, `${slug}.md`), fm, "utf-8");
+  return slug;
+}
+
+/** 后台删除文章 */
+export function deletePost(slug: string) {
+  const file = path.join(postsDir, `${slug}.md`);
+  // 只允许删除 posts 目录内的 .md 文件
+  if (path.dirname(file) !== postsDir) throw new Error("非法路径");
+  if (fs.existsSync(file)) fs.unlinkSync(file);
+}
+
+/** 后台编辑时取原始 Markdown */
+export function getPostRaw(slug: string) {
+  const file = path.join(postsDir, `${slug}.md`);
+  if (!fs.existsSync(file)) return null;
+  const { data, content } = matter(fs.readFileSync(file, "utf-8"));
+  return {
+    slug,
+    title: (data.title as string) ?? slug,
+    date: (data.date as string) ?? "",
+    category: (data.category as string) ?? "日常",
+    excerpt: (data.excerpt as string) ?? "",
+    content,
+  };
+}
+
 export function getPost(slug: string): Post | null {
   const file = path.join(postsDir, `${slug}.md`);
   if (!fs.existsSync(file)) return null;

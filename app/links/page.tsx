@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { linkGroups } from "@/lib/links";
+import { getLinkGroups } from "@/lib/store";
 import Reveal from "@/components/motion/Reveal";
 import { ExternalLink } from "@/components/icons";
 
@@ -8,12 +8,16 @@ export const metadata: Metadata = {
   description: "HaizhuAI 精选的开源项目与实用站点导航，无广告、无跟踪。",
 };
 
+// 导航内容由后台管理，保持动态渲染
+export const dynamic = "force-dynamic";
+
 export default function LinksPage() {
+  const linkGroups = getLinkGroups();
   return (
     <div className="mx-auto max-w-6xl px-6 pt-28">
       <Reveal>
         <p className="font-grotesk text-sm font-semibold text-[#2aa11d]">LINKS</p>
-        <h1 className="font-grotesk mt-1 text-4xl font-bold tracking-[-1.5px] md:text-5xl">
+        <h1 className="font-display mt-1 text-5xl text-black md:text-6xl">
           站点导航
         </h1>
         <p className="mt-4 max-w-xl text-slate-mid">
@@ -62,7 +66,7 @@ export default function LinksPage() {
       </div>
 
       <p className="mb-16 rounded-xl bg-cloud px-5 py-4 text-xs leading-relaxed text-slate-mid">
-        📮 想推荐好站点？欢迎联系站长。本页坚持三不原则：不放广告、不带跟踪参数、不收录低质站点。
+        📮 想推荐好站点？点右下角 💬 联系站长。本页内容由站长在后台维护，坚持三不原则：不放广告、不带跟踪参数、不收录低质站点。
       </p>
     </div>
   );

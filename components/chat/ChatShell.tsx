@@ -98,16 +98,33 @@ export default function ChatShell({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [demoMode, setDemoMode] = useState(false);
   const [modelsMsg, setModelsMsg] = useState("");
+  const [serverAi, setServerAi] = useState<{ configured: boolean; models: string[] }>({
+    configured: false,
+    models: [],
+  });
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const sentInitial = useRef(false);
 
-  /* 初始化：读本地配置 + 处理首页带来的问题 */
+  /* 初始化：读本地配置 + 查询站点内置服务状态 */
   useEffect(() => {
     const c = loadConfig();
     setConfig(c);
     setModel(c.models[0] ?? "");
+    fetch("/api/public/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.serverAi?.configured) {
+          setServerAi(data.serverAi);
+          // 访客未自行配置时，直接使用站点内置的模型列表
+          if (!c.baseUrl && data.serverAi.models?.length) {
+            setConfig((prev) => ({ ...prev, models: data.serverAi.models }));
+            setModel(data.serverAi.models[0]);
+          }
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -311,7 +328,7 @@ export default function ChatShell({
           </div>
           <span
             className={`rounded-md px-2 py-1 text-xs font-medium ${
-              config.baseUrl
+              config.baseUrl || serverAi.configured
                 ? "bg-[rgba(90,225,76,0.2)] text-[#1d7a12]"
                 : "bg-black/5 text-slate-mid"
             }`}
@@ -320,7 +337,9 @@ export default function ChatShell({
               ? config.provider === "ollama"
                 ? "Ollama 已连接"
                 : "OpenAI 兼容"
-              : "演示模式"}
+              : serverAi.configured
+                ? "站点内置服务"
+                : "演示模式"}
           </span>
         </div>
         <button
