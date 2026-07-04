@@ -208,10 +208,80 @@ body {
   animation: fade-rise 0.8s ease-out 0.4s both;
 }
 
+/* ---------- 动态背景：落樱 ---------- */
+.petal {
+  position: absolute;
+  top: -6vh;
+  background: linear-gradient(135deg, #ffd7e6 0%, #ffb3cf 55%, #f78fb5 100%);
+  border-radius: 150% 20% 150% 20%;
+  box-shadow: 0 0 4px rgb(255 182 205 / 0.5);
+  opacity: 0;
+  animation-name: petal-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes petal-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  6% {
+    opacity: 0.95;
+  }
+  30% {
+    transform: translate3d(4vw, 30vh, 0) rotate(calc(120deg * var(--spin, 1)));
+  }
+  60% {
+    transform: translate3d(-3vw, 62vh, 0) rotate(calc(240deg * var(--spin, 1)));
+  }
+  88% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(3vw, 108vh, 0) rotate(calc(400deg * var(--spin, 1)));
+    opacity: 0;
+  }
+}
+
+/* ---------- 动态背景：水面涟漪圈 ---------- */
+.ripple-ring {
+  position: absolute;
+  width: 130px;
+  height: 34px;
+  margin-left: -65px;
+  border: 1.5px solid rgb(255 255 255 / 0.55);
+  border-radius: 50%;
+  opacity: 0;
+  animation-name: ripple-expand;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes ripple-expand {
+  0% {
+    transform: scale(0.08);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
 /* 尊重系统减弱动效偏好 */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+  .petal,
+  .ripple-ring {
+    display: none;
   }
 }

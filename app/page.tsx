@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getAllPosts } from "@/lib/posts";
 import { getLinkGroups } from "@/lib/store";
 import Reveal from "@/components/motion/Reveal";
-import VideoBackground from "@/components/VideoBackground";
+import HeroScene from "@/components/HeroScene";
 import PostCard from "@/components/PostCard";
 import { ExternalLink } from "@/components/icons";
 
@@ -48,9 +48,9 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* ============ 电影感 Hero（循环视频背景） ============ */}
+      {/* ============ 电影感 Hero（动态图片背景：视差 + 水波 + 落樱） ============ */}
       <section className="relative min-h-screen w-full overflow-hidden">
-        <VideoBackground />
+        <HeroScene />
 
         <div
           className="relative z-10 flex flex-col items-center justify-center px-6 pb-40 text-center"
@@ -67,7 +67,10 @@ export default function HomePage() {
           </h1>
 
           {/* 描述 */}
-          <p className="animate-fade-rise-delay mt-8 max-w-2xl text-base leading-relaxed text-[#6F6F6F] sm:text-lg">
+          <p
+            className="animate-fade-rise-delay mt-8 max-w-2xl text-base leading-relaxed text-[#3d3d3d] sm:text-lg"
+            style={{ textShadow: "0 1px 8px rgb(255 255 255 / 0.8)" }}
+          >
             为求知者、创造者与深思者搭建的数字居所 ——
             在这里阅读资讯与教程、记录日常，并与开源 AI 深入对话，回归纯粹心流。
           </p>
@@ -82,7 +85,7 @@ export default function HomePage() {
             </Link>
             <Link
               href="/blog"
-              className="link-under text-base text-[#6F6F6F] hover:text-black"
+              className="link-under rounded-full bg-white/70 px-6 py-3 text-base text-[#3d3d3d] backdrop-blur-sm hover:text-black"
             >
               浏览文章 →
             </Link>
