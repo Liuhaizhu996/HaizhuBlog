@@ -16,17 +16,6 @@ export type LinkGroup = {
 
 export const linkGroups: LinkGroup[] = [
   {
-    title: "开源 AI 对话",
-    links: [
-      { name: "Cherry Studio", desc: "多模型桌面客户端，支持知识库", url: "https://github.com/CherryHQ/cherry-studio" },
-      { name: "NextChat", desc: "轻量易部署的跨平台 ChatGPT UI", url: "https://github.com/ChatGPTNextWeb/NextChat" },
-      { name: "Open WebUI", desc: "功能全面的自托管 AI 平台", url: "https://github.com/open-webui/open-webui" },
-      { name: "LobeChat", desc: "高颜值开源聊天框架，插件生态", url: "https://github.com/lobehub/lobe-chat" },
-      { name: "Ollama", desc: "一条命令在本地跑开源大模型", url: "https://ollama.com" },
-      { name: "LM Studio", desc: "本地大模型图形化运行器", url: "https://lmstudio.ai" },
-    ],
-  },
-  {
     title: "模型与社区",
     links: [
       { name: "Hugging Face", desc: "全球最大的开源模型社区", url: "https://huggingface.co" },

@@ -137,7 +137,7 @@ const cannedReplies: Array<{ keywords: string[]; reply: string }> = [
   {
     keywords: ["开源", "工具", "推荐", "模型"],
     reply:
-      "几款值得关注的开源 AI 对话工具：\n\n• Cherry Studio —— 多模型桌面客户端；\n• NextChat —— 轻量易部署；\n• Open WebUI —— 功能全面的自托管平台；\n• LobeChat —— 高颜值聊天框架；\n• Ollama —— 本地一键跑大模型。\n\n本站的「站点导航」页收录了它们的链接。",
+      "几款值得关注的开源 AI 对话工具：\n\n• Cherry Studio —— 多模型桌面客户端；\n• NextChat —— 轻量易部署；\n• Open WebUI —— 功能全面的自托管平台；\n• LobeChat —— 高颜值聊天框架；\n• Ollama —— 本地一键跑大模型。\n\n本站的对话功能就参考了它们的设计。",
   },
 ];
 

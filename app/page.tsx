@@ -5,6 +5,7 @@ import Reveal from "@/components/motion/Reveal";
 import HeroScene from "@/components/HeroScene";
 import PostCard from "@/components/PostCard";
 import { ExternalLink } from "@/components/icons";
+import { ArrowRight, Play } from "lucide-react";
 
 // 文章与导航都可在后台随时变更，首页始终取最新数据
 export const dynamic = "force-dynamic";
@@ -56,38 +57,36 @@ export default function HomePage() {
           className="relative z-10 flex flex-col items-center justify-center px-6 pb-40 text-center"
           style={{ paddingTop: "calc(8rem - 75px + 96px)" }}
         >
-          {/* 主标题：Instrument Serif，行高 0.95，斜体灰字强调 */}
-          <h1
-            className="font-display animate-fade-rise max-w-7xl text-5xl font-normal text-black sm:text-7xl md:text-8xl"
-            style={{ lineHeight: 0.95, letterSpacing: "-2.46px" }}
-          >
-            穿过<em className="italic text-[#6F6F6F]">喧嚣</em>，
-            <br className="hidden sm:block" />
-            构筑属于你的<em className="italic text-[#6F6F6F]">知识之境。</em>
+          {/* 主标题：Instrument Serif，斜体强调，leading-[1.1] */}
+          <h1 className="font-display animate-fade-rise max-w-5xl text-6xl leading-[1.1] text-black sm:text-7xl md:text-8xl lg:text-[7.5rem]">
+            Haizhu<em className="italic text-[#6F6F6F]">AI</em>
           </h1>
 
-          {/* 描述 */}
+          {/* 副文案：轻字重两行 */}
           <p
-            className="animate-fade-rise-delay mt-8 max-w-2xl text-base leading-relaxed text-[#3d3d3d] sm:text-lg"
+            className="animate-fade-rise-delay mt-4 max-w-md text-sm font-light leading-relaxed text-[#3d3d3d] md:mt-5 md:text-base"
             style={{ textShadow: "0 1px 8px rgb(255 255 255 / 0.8)" }}
           >
-            为求知者、创造者与深思者搭建的数字居所 ——
-            在这里阅读资讯与教程、记录日常，并与开源 AI 深入对话，回归纯粹心流。
+            分享资讯、教程与日常的数字居所，
+            <br className="hidden sm:block" />
+            与开源 AI 一起边读边问，回归纯粹心流。
           </p>
 
-          {/* CTA */}
-          <div className="animate-fade-rise-delay-2 mt-12 flex flex-wrap items-center justify-center gap-4">
+          {/* CTA：主按钮箭头悬停右移，次按钮描边毛玻璃 */}
+          <div className="animate-fade-rise-delay-2 mt-5 flex flex-col items-center gap-4 sm:flex-row md:mt-6">
             <Link
               href="/chat"
-              className="rounded-full bg-black px-14 py-5 text-base text-white transition-transform duration-200 hover:scale-[1.03]"
+              className="group flex items-center gap-2 rounded-full bg-black px-7 py-3 text-sm font-medium text-white transition-colors hover:bg-black/85"
             >
-              开始旅程
+              开始对话
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
             <Link
               href="/blog"
-              className="link-under rounded-full bg-white/70 px-6 py-3 text-base text-[#3d3d3d] backdrop-blur-sm hover:text-black"
+              className="flex items-center gap-2 rounded-full border border-black/40 bg-white/40 px-7 py-3 text-sm text-black backdrop-blur-sm transition-colors hover:border-black/60 hover:bg-white/70"
             >
-              浏览文章 →
+              <Play className="h-4 w-4" />
+              浏览文章
             </Link>
           </div>
         </div>
