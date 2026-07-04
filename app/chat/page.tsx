@@ -3,8 +3,7 @@ import ChatShell from "@/components/chat/ChatShell";
 
 export const metadata: Metadata = {
   title: "AI 对话",
-  description:
-    "HaizhuAI 站内 AI 对话：支持选择模型（OpenAI 兼容 / Ollama）与上传文件。",
+  description: "HaizhuAI 站内 AI 对话：选择站点开放的模型，支持上传文件。",
 };
 
 export default async function ChatPage({
@@ -21,7 +20,7 @@ export default async function ChatPage({
           AI 对话
         </h1>
         <p className="mt-2 text-sm text-slate-mid">
-          选择模型 · 上传文件 · 接入你自己的服务（OpenAI 兼容 / Ollama）
+          选择模型 · 上传文件 · 模型服务由站长统一配置
         </p>
       </div>
       <ChatShell initialQuestion={q} />

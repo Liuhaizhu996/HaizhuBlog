@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import {
   ADMIN_COOKIE,
-  adminPassword,
   adminToken,
   isAdminRequest,
   isDefaultPassword,
+  verifyPassword,
 } from "@/lib/auth";
 
 /** GET：查询当前登录状态 */
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
   }
 
-  if (password !== adminPassword()) {
+  if (!verifyPassword(password)) {
     return NextResponse.json({ error: "密码错误" }, { status: 401 });
   }
 

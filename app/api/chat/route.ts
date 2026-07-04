@@ -18,30 +18,20 @@ import { getSettings } from "@/lib/store";
 
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
-type ClientConfig = {
-  provider?: "openai" | "ollama";
-  baseUrl?: string;
-  apiKey?: string;
-};
-
-/** 配置优先级：访客浏览器配置 > 后台管理配置 > 环境变量 */
-function resolveConfig(config: ClientConfig | undefined) {
+/**
+ * 模型服务仅由站长控制：后台管理配置 > 环境变量。
+ * 前台不再接受访客自定义服务地址/密钥。
+ */
+function resolveConfig() {
   const server = getSettings().ai;
-  const userBase = config?.baseUrl?.trim() || "";
-  const provider = userBase
-    ? config?.provider || "openai"
-    : server.baseUrl
-      ? server.provider
-      : (process.env.AI_PROVIDER as "openai" | "ollama") || "openai";
-  const baseUrl = (
-    userBase ||
-    server.baseUrl ||
-    process.env.AI_BASE_URL ||
+  const provider = server.baseUrl
+    ? server.provider
+    : (process.env.AI_PROVIDER as "openai" | "ollama") || "openai";
+  const baseUrl = (server.baseUrl || process.env.AI_BASE_URL || "").replace(
+    /\/+$/,
     ""
-  ).replace(/\/+$/, "");
-  const apiKey = userBase
-    ? config?.apiKey?.trim() || ""
-    : server.apiKey || process.env.AI_API_KEY || "";
+  );
+  const apiKey = server.apiKey || process.env.AI_API_KEY || "";
   return { provider, baseUrl, apiKey };
 }
 
@@ -127,7 +117,7 @@ const cannedReplies: Array<{ keywords: string[]; reply: string }> = [
   {
     keywords: ["网站", "站点", "能做什么", "介绍"],
     reply:
-      "HaizhuAI 是一个「不止于博客」的站点：\n\n1. 📚 文章板块：分享资讯、教程与日常；\n2. 🤖 AI 对话：支持选择模型、上传文件（就是当前页面）；\n3. 🧭 站点导航：精选开源项目与实用工具。\n\n点击右上角 ⚙ 设置，填入你的 OpenAI 兼容接口或 Ollama 地址，我就能真实回答问题了。",
+      "HaizhuAI 是一个「不止于博客」的站点：\n\n1. 📚 文章板块：分享资讯、教程与日常；\n2. 🤖 AI 对话：支持选择模型、上传文件（就是当前页面）；\n3. 🧭 站点导航：精选开源项目与实用工具。\n\n站长接入模型服务后，我就能真实回答问题了，敬请期待。",
   },
   {
     keywords: ["提示词", "prompt"],
@@ -142,7 +132,7 @@ const cannedReplies: Array<{ keywords: string[]; reply: string }> = [
 ];
 
 const fallbackReply =
-  "收到！当前是演示模式 🚧\n\n点击右上角 ⚙ 设置，填入任意 OpenAI 兼容接口（DeepSeek / 通义 / 硅基流动 / OneAPI…）或本地 Ollama 地址，即可真实对话。密钥只保存在你的浏览器里。";
+  "收到！当前是演示模式 🚧\n\n站长还没有接入真实的模型服务，等接入后我就能认真回答你的每一个问题啦。你可以先逛逛「文章」和「站点导航」板块。";
 
 function demoReply(messages: ChatMessage[]) {
   const lastUser =
@@ -158,18 +148,20 @@ function demoReply(messages: ChatMessage[]) {
 export async function POST(req: Request) {
   let messages: ChatMessage[] = [];
   let model = "";
-  let config: ClientConfig | undefined;
 
   try {
     const body = await req.json();
     if (Array.isArray(body?.messages)) messages = body.messages;
     model = typeof body?.model === "string" ? body.model : "";
-    config = body?.config;
   } catch {
     return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
   }
 
-  const { provider, baseUrl, apiKey } = resolveConfig(config);
+  const { provider, baseUrl, apiKey } = resolveConfig();
+
+  // 模型必须在站长开放的列表内，否则回退到第一个
+  const allowed = getSettings().ai.models;
+  if (allowed.length && !allowed.includes(model)) model = allowed[0];
 
   if (!baseUrl) return demoReply(messages);
 

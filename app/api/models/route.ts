@@ -1,20 +1,22 @@
 import { NextResponse } from "next/server";
 import { getSettings } from "@/lib/store";
+import { isAdminRequest, unauthorized } from "@/lib/auth";
 
 /**
- * 拉取模型列表：
+ * 拉取模型列表（仅管理员，用于后台「自动获取」按钮）：
  *  - OpenAI 兼容：GET {baseUrl}/v1/models
  *  - Ollama：GET {baseUrl}/api/tags
- * 未配置后端时返回空列表，前端保留预设模型。
+ * 请求体可携带后台表单中未保存的 config，缺省时用已保存的站点配置。
  */
-
 export async function POST(req: Request) {
+  if (!isAdminRequest(req)) return unauthorized();
+
   let provider = "openai";
   let baseUrl = "";
   let apiKey = "";
 
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const server = getSettings().ai;
     const userBase = body?.config?.baseUrl?.trim() || "";
     if (userBase) {
@@ -22,11 +24,7 @@ export async function POST(req: Request) {
       baseUrl = userBase.replace(/\/+$/, "");
       apiKey = body?.config?.apiKey?.trim() || "";
     } else {
-      provider = server.baseUrl
-        ? server.provider
-        : process.env.AI_PROVIDER === "ollama"
-          ? "ollama"
-          : "openai";
+      provider = server.provider;
       baseUrl = (server.baseUrl || process.env.AI_BASE_URL || "").replace(/\/+$/, "");
       apiKey = server.apiKey || process.env.AI_API_KEY || "";
     }

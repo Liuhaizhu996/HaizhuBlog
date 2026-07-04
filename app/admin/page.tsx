@@ -31,6 +31,7 @@ const TABS = [
   { key: "tools", label: "🧰 AI 工具" },
   { key: "links", label: "🧭 站点导航" },
   { key: "bot", label: "💬 客服与联系方式" },
+  { key: "security", label: "🔐 修改密码" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -158,6 +159,7 @@ export default function AdminPage() {
         {tab === "tools" && <ToolsPanel />}
         {tab === "links" && <LinksPanel />}
         {tab === "bot" && <BotPanel />}
+        {tab === "security" && <SecurityPanel />}
       </div>
     </div>
   );
@@ -347,17 +349,127 @@ function PostsPanel() {
   );
 }
 
+/* ================= 修改密码 ================= */
+
+function SecurityPanel() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [msg, setMsg] = useState("");
+
+  async function change(e: React.FormEvent) {
+    e.preventDefault();
+    if (next !== confirm) {
+      setMsg("❌ 两次输入的新密码不一致");
+      return;
+    }
+    setMsg("提交中…");
+    const res = await fetch("/api/admin/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ current, next }),
+    });
+    const d = await res.json();
+    if (res.ok) {
+      setMsg("✅ 密码已修改，本会话保持登录，其他设备需重新登录");
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+    } else {
+      setMsg(`❌ ${d.error}`);
+    }
+  }
+
+  return (
+    <form onSubmit={change} className="card-soft max-w-md p-6">
+      <h2 className="font-grotesk text-lg font-bold">修改管理员密码</h2>
+      <p className="mt-1 text-xs leading-relaxed text-slate-mid">
+        新密码以哈希形式保存在服务器 data/auth.json，优先级高于
+        ADMIN_PASSWORD 环境变量；修改后其他已登录设备立即失效。
+      </p>
+      <label className="mt-5 block text-xs font-semibold text-slate-mid">
+        当前密码
+        <input
+          type="password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          required
+          className="mt-1 w-full rounded-lg border border-hairline px-3 py-2.5 text-sm font-normal text-black outline-none focus:border-black"
+        />
+      </label>
+      <label className="mt-3 block text-xs font-semibold text-slate-mid">
+        新密码（至少 6 位）
+        <input
+          type="password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          minLength={6}
+          required
+          className="mt-1 w-full rounded-lg border border-hairline px-3 py-2.5 text-sm font-normal text-black outline-none focus:border-black"
+        />
+      </label>
+      <label className="mt-3 block text-xs font-semibold text-slate-mid">
+        确认新密码
+        <input
+          type="password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          minLength={6}
+          required
+          className="mt-1 w-full rounded-lg border border-hairline px-3 py-2.5 text-sm font-normal text-black outline-none focus:border-black"
+        />
+      </label>
+      <div className="mt-5 flex items-center gap-3">
+        <button type="submit" className="btn-black rounded-lg px-6 py-2.5 text-sm font-semibold">
+          修改密码
+        </button>
+        {msg && <span className="text-xs text-slate-mid">{msg}</span>}
+      </div>
+    </form>
+  );
+}
+
 /* ================= AI 模型配置 ================= */
 
 function AiPanel() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [msg, setMsg] = useState("");
+  const [fetchMsg, setFetchMsg] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/settings")
       .then((r) => r.json())
       .then((d) => setSettings(d.settings));
   }, []);
+
+  async function fetchModels() {
+    if (!settings) return;
+    setFetchMsg("正在获取…");
+    try {
+      const res = await fetch("/api/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          config: {
+            provider: settings.ai.provider,
+            baseUrl: settings.ai.baseUrl,
+            apiKey: settings.ai.apiKey,
+          },
+        }),
+      });
+      const d = await res.json();
+      if (d.error) {
+        setFetchMsg(d.error);
+      } else if (Array.isArray(d.models) && d.models.length) {
+        setSettings({ ...settings, ai: { ...settings.ai, models: d.models } });
+        setFetchMsg(`已获取 ${d.models.length} 个模型，记得保存`);
+      } else {
+        setFetchMsg("服务未返回模型，保留当前列表");
+      }
+    } catch {
+      setFetchMsg("获取失败，请检查服务地址");
+    }
+  }
 
   async function save() {
     if (!settings) return;
@@ -420,20 +532,34 @@ function AiPanel() {
           />
         </label>
         <label className="block text-xs font-semibold text-slate-mid">
-          开放给访客的模型（逗号分隔）
-          <input
-            value={settings.ai.models.join(", ")}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                ai: {
-                  ...settings.ai,
-                  models: e.target.value.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
-                },
-              })
-            }
-            className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
-          />
+          开放给访客的模型（逗号分隔；前台只能从这里选择）
+          <div className="mt-1 flex gap-2">
+            <input
+              value={settings.ai.models.join(", ")}
+              onChange={(e) =>
+                setSettings({
+                  ...settings,
+                  ai: {
+                    ...settings.ai,
+                    models: e.target.value.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
+                  },
+                })
+              }
+              className="w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+            />
+            <button
+              type="button"
+              onClick={fetchModels}
+              className="btn-black shrink-0 rounded-lg px-3 py-2 text-xs font-medium"
+            >
+              自动获取
+            </button>
+          </div>
+          {fetchMsg && (
+            <span className="mt-1 block text-xs font-normal text-slate-mid">
+              {fetchMsg}
+            </span>
+          )}
         </label>
       </div>
       <div className="mt-5 flex items-center gap-3">

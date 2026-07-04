@@ -1,26 +1,54 @@
 import crypto from "crypto";
+import { readJson, writeJson } from "@/lib/store";
 
 /**
  * 管理员鉴权：
- * 密码来自环境变量 ADMIN_PASSWORD（未设置时使用默认值 haizhuai-admin，
- * 后台会显著提醒修改）。登录成功后种一枚 httpOnly Cookie，值为密码派生
- * 的 HMAC 摘要，服务端每次请求重新校验。
+ * - 密码优先级：后台修改过的密码（哈希存 data/auth.json）>
+ *   环境变量 ADMIN_PASSWORD > 默认值 haizhuai-admin
+ * - 登录成功种 httpOnly Cookie，值为当前密码哈希派生的 HMAC，
+ *   修改密码后旧 Cookie 立即失效
  */
 
 export const ADMIN_COOKIE = "hz_admin";
 
-export function adminPassword(): string {
+const AUTH_FILE = "auth.json";
+
+function sha256(s: string): string {
+  return crypto.createHash("sha256").update(s).digest("hex");
+}
+
+function storedHash(): string {
+  return readJson<{ passwordHash: string }>(AUTH_FILE, { passwordHash: "" })
+    .passwordHash;
+}
+
+function fallbackPassword(): string {
   return process.env.ADMIN_PASSWORD || "haizhuai-admin";
 }
 
+/** 当前生效的密码哈希 */
+function currentHash(): string {
+  return storedHash() || sha256(fallbackPassword());
+}
+
+export function verifyPassword(password: string): boolean {
+  return sha256(password) === currentHash();
+}
+
+/** 后台修改密码：写入哈希，明文不落盘 */
+export function setPassword(password: string) {
+  writeJson(AUTH_FILE, { passwordHash: sha256(password) });
+}
+
+/** 仍在使用默认密码（未设环境变量、也没在后台改过） */
 export function isDefaultPassword(): boolean {
-  return !process.env.ADMIN_PASSWORD;
+  return !storedHash() && !process.env.ADMIN_PASSWORD;
 }
 
 export function adminToken(): string {
   return crypto
     .createHmac("sha256", "haizhuai-admin-salt")
-    .update(adminPassword())
+    .update(currentHash())
     .digest("hex");
 }
 
