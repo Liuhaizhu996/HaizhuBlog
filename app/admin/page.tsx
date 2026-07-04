@@ -660,8 +660,8 @@ function AiPanel() {
           <div>
             <h2 className="font-grotesk text-lg font-bold">模型映射</h2>
             <p className="mt-1 text-xs leading-relaxed text-slate-mid">
-              前台展示的模型名 → 实际调用的服务与模型。访客只能看到并请求「展示名」，
-              真实渠道与模型名不会暴露。
+              前台模型名 → 实际调用的服务与模型。通常两者保持一致（「导入全部」即按真实
+              模型名生成）；映射的意义在于同名模型可指定走哪个服务。渠道地址与密钥不会暴露给前台。
             </p>
           </div>
           <button
@@ -692,7 +692,7 @@ function AiPanel() {
             >
               <input
                 value={m.alias}
-                placeholder="前台展示名，如 极速模型"
+                placeholder="前台模型名，如 deepseek-chat"
                 onChange={(e) => updateMapping(i, { alias: e.target.value })}
                 className="rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-black"
               />
