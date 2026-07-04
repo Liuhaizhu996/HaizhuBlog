@@ -2,20 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "@/components/icons";
 
 const links = [
   { href: "/", label: "首页" },
   { href: "/blog", label: "文章" },
-  { href: "/tools", label: "AI 工具" },
-  { href: "/chat", label: "对话" },
+  { href: "/tools", label: "AI 工具", dropdown: true },
+  { href: "/links", label: "站点导航" },
   { href: "/about", label: "关于" },
+];
+
+const toolsMenu = [
+  { href: "/chat", label: "AI 对话", desc: "选择模型 · 上传文件" },
+  { href: "/tools", label: "工具广场", desc: "全部工具与接入计划" },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [dropdown, setDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -24,73 +32,135 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    setOpen(false);
+    setDropdown(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (!dropdownRef.current?.contains(e.target as Node)) setDropdown(false);
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
 
   return (
     <header
-      className={`fixed top-0 z-40 w-full border-b transition-all duration-300 ${
+      className={`fixed top-0 z-40 w-full transition-all duration-300 ${
         scrolled
-          ? "border-rule bg-paper/90 backdrop-blur-md"
-          : "border-transparent bg-transparent"
+          ? "border-b border-hairline bg-white/85 backdrop-blur-md"
+          : "border-b border-transparent bg-transparent"
       }`}
     >
-      <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-        <Link href="/" className="group flex items-baseline gap-1">
-          <span className="font-serif-display text-xl font-black tracking-tight">
-            Haizhu
-          </span>
-          <span className="bg-vermilion px-1.5 py-0.5 text-sm font-black text-white transition-transform duration-300 group-hover:-rotate-3">
-            AI
-          </span>
+      {/* 提示词规格：水平 120px / 垂直 16px 内边距 */}
+      <nav className="flex items-center justify-between px-6 py-4 lg:px-[120px]">
+        <Link
+          href="/"
+          className="font-grotesk text-2xl font-semibold tracking-[-1.44px]"
+        >
+          Haizhu<span className="text-[#2aa11d]">AI</span>
         </Link>
 
-        {/* 桌面导航 */}
-        <ul className="hidden items-center gap-7 md:flex">
-          {links.map(({ href, label }) => {
+        {/* 桌面导航（Schibsted Grotesk Medium 16px, -0.2px tracking） */}
+        <ul className="hidden items-center gap-8 md:flex">
+          {links.map((item) => {
             const active =
-              href === "/" ? pathname === "/" : pathname.startsWith(href);
+              item.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(item.href) ||
+                  (item.dropdown && pathname.startsWith("/chat"));
+
+            if (item.dropdown) {
+              return (
+                <li key={item.href} ref={dropdownRef} className="relative">
+                  <button
+                    onClick={() => setDropdown((v) => !v)}
+                    className={`font-grotesk flex items-center gap-1 text-base font-medium tracking-[-0.2px] transition-colors ${
+                      active ? "text-black" : "text-slate-mid hover:text-black"
+                    }`}
+                  >
+                    {item.label}
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${dropdown ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {dropdown && (
+                    <div className="absolute left-1/2 top-full mt-3 w-56 -translate-x-1/2 rounded-xl border border-hairline bg-white p-2 shadow-xl shadow-black/5">
+                      {toolsMenu.map((m) => (
+                        <Link
+                          key={m.href}
+                          href={m.href}
+                          className="block rounded-lg px-3.5 py-2.5 hover:bg-cloud"
+                        >
+                          <span className="font-grotesk block text-sm font-semibold">
+                            {m.label}
+                          </span>
+                          <span className="text-xs text-slate-mid">{m.desc}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              );
+            }
+
             return (
-              <li key={href}>
+              <li key={item.href}>
                 <Link
-                  href={href}
-                  className={`link-ink text-sm tracking-wide ${
-                    active
-                      ? "font-bold text-vermilion"
-                      : "text-ink-soft hover:text-ink"
+                  href={item.href}
+                  className={`font-grotesk text-base font-medium tracking-[-0.2px] transition-colors ${
+                    active ? "text-black" : "text-slate-mid hover:text-black"
                   }`}
                 >
-                  {label}
+                  {item.label}
                 </Link>
               </li>
             );
           })}
         </ul>
 
+        {/* 右侧按钮组 */}
+        <div className="hidden items-center gap-2 md:flex">
+          <Link
+            href="/links"
+            className="btn-ghost font-grotesk rounded-lg px-4 py-2 text-sm font-medium"
+          >
+            导航
+          </Link>
+          <Link
+            href="/chat"
+            className="btn-black font-grotesk rounded-lg px-5 py-2 text-sm font-medium"
+          >
+            开始对话
+          </Link>
+        </div>
+
         {/* 移动端汉堡 */}
         <button
           onClick={() => setOpen((v) => !v)}
           aria-label="打开菜单"
-          className="flex h-9 w-9 flex-col items-center justify-center gap-1.5 border border-ink md:hidden"
+          className="flex h-9 w-9 flex-col items-center justify-center gap-1.5 rounded-lg border border-hairline bg-white md:hidden"
         >
           <span
-            className={`h-0.5 w-4 bg-ink transition-transform ${open ? "translate-y-1 rotate-45" : ""}`}
+            className={`h-0.5 w-4 bg-black transition-transform ${open ? "translate-y-1 rotate-45" : ""}`}
           />
           <span
-            className={`h-0.5 w-4 bg-ink transition-all ${open ? "-translate-y-1 -rotate-45" : ""}`}
+            className={`h-0.5 w-4 bg-black transition-all ${open ? "-translate-y-1 -rotate-45" : ""}`}
           />
         </button>
       </nav>
 
       {/* 移动端菜单 */}
       {open && (
-        <div className="border-t border-rule bg-paper md:hidden">
-          {links.map(({ href, label }) => (
+        <div className="border-t border-hairline bg-white md:hidden">
+          {[...links, { href: "/chat", label: "AI 对话" }].map((item) => (
             <Link
-              key={href}
-              href={href}
-              className="block border-b border-rule px-5 py-3.5 text-sm text-ink-soft hover:bg-paper-warm hover:text-ink"
+              key={item.href + item.label}
+              href={item.href}
+              className="block border-b border-hairline px-6 py-3.5 text-sm text-slate-mid hover:bg-cloud hover:text-black"
             >
-              {label}
+              {item.label}
             </Link>
           ))}
         </div>

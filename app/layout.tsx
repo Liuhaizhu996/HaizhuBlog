@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: "%s · HaizhuAI",
   },
   description:
-    "HaizhuAI —— 一份「纸与墨」风格的数字刊物：分享资讯、教程与日常，并集成开源 AI 对话工具，让你边读边问。",
+    "HaizhuAI —— 分享资讯、教程与日常，并集成开源 AI 对话工具（支持模型选择与文件上传），让你边读边问。",
 };
 
 export default function RootLayout({
@@ -19,10 +19,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        {/* 按提示词要求加载 Schibsted Grotesk / Inter / Noto Sans / Fustat */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Fustat:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="min-h-screen antialiased">
-        {/* 纸张颗粒质感 */}
-        <div className="paper-grain" aria-hidden />
-
         <Navbar />
         <main className="relative">{children}</main>
         <Footer />

@@ -4,31 +4,49 @@ import Reveal from "@/components/motion/Reveal";
 
 export const metadata: Metadata = {
   title: "关于",
-  description: "关于 HaizhuAI：一份不止于博客的数字刊物。",
+  description: "关于 HaizhuAI：一个不止于博客的站点。",
 };
 
 const milestones = [
-  { label: "站点框架上线", desc: "纸与墨编辑风 UI · 博客系统 · AI 对话界面雏形", done: true },
-  { label: "接入开源 AI 模型", desc: "Ollama / OpenAI 兼容接口，实现真实对话", done: false },
-  { label: "文章 AI 助读", desc: "在文章页一键总结、答疑", done: false },
-  { label: "更多功能", desc: "评论、搜索、订阅…… 由站长逐步揭晓", done: false },
+  {
+    label: "站点框架上线",
+    desc: "现代浅色 UI · 博客系统 · 视频背景 Hero",
+    done: true,
+  },
+  {
+    label: "真实 AI 对话",
+    desc: "模型选择、文件上传、OpenAI 兼容 / Ollama 双协议接入",
+    done: true,
+  },
+  {
+    label: "站点导航",
+    desc: "精选开源项目与实用站点，无广告",
+    done: true,
+  },
+  {
+    label: "文章 AI 助读",
+    desc: "在文章页一键总结、答疑",
+    done: false,
+  },
+  {
+    label: "更多功能",
+    desc: "提示词实验室、评论、搜索、订阅…… 由站长逐步揭晓",
+    done: false,
+  },
 ];
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-3xl px-5 pt-28">
+    <div className="mx-auto max-w-3xl px-6 pt-28">
       <Reveal>
-        <p className="text-xs font-bold tracking-[0.3em] text-vermilion">
-          ABOUT / 关于
-        </p>
-        <h1 className="font-serif-display mt-2 text-4xl font-black md:text-6xl">
+        <p className="font-grotesk text-sm font-semibold text-[#2aa11d]">ABOUT</p>
+        <h1 className="font-grotesk mt-1 text-4xl font-bold tracking-[-1.5px] md:text-5xl">
           关于本站
         </h1>
-        <div className="rule-strong mt-8" />
         <div className="prose-haizhu mt-6">
           <p>
-            <strong>HaizhuAI</strong> 是一份「不止于博客」的数字刊物。
-            这里既有资讯、教程和日常分享，也在逐步集成开源的 AI 对话工具 ——
+            <strong>HaizhuAI</strong> 是一个「不止于博客」的站点。
+            这里既有资讯、教程和日常分享，也集成了真实可用的开源 AI 对话工具 ——
             希望你在这里不仅能读到东西，还能<em>问</em>到东西。
           </p>
           <p>站点正在生长中，欢迎常来看看。</p>
@@ -36,27 +54,22 @@ export default function AboutPage() {
       </Reveal>
 
       <Reveal delay={0.15}>
-        <h2 className="font-serif-display mt-14 text-2xl font-black">路线图</h2>
+        <h2 className="font-grotesk mt-14 text-2xl font-bold">路线图</h2>
         <ol className="mt-6 space-y-4 pb-10">
           {milestones.map((m, i) => (
-            <li key={m.label} className="ink-card flex items-start gap-5 p-6">
+            <li key={m.label} className="card-soft flex items-start gap-4 p-5">
               <span
-                className={`font-serif-display text-2xl font-black ${
-                  m.done ? "text-vermilion" : "text-rule"
+                className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  m.done
+                    ? "bg-[rgba(90,225,76,0.89)] text-[#052e05]"
+                    : "bg-cloud text-black/40"
                 }`}
               >
-                {String(i + 1).padStart(2, "0")}
+                {m.done ? "✓" : i + 1}
               </span>
               <div>
-                <p className="font-serif-display font-bold">
-                  {m.label}
-                  {m.done && (
-                    <span className="ml-2 bg-vermilion px-2 py-0.5 text-xs text-white">
-                      已完成
-                    </span>
-                  )}
-                </p>
-                <p className="mt-1 text-sm text-ink-faint">{m.desc}</p>
+                <p className="font-grotesk font-bold">{m.label}</p>
+                <p className="mt-1 text-sm text-slate-mid">{m.desc}</p>
               </div>
             </li>
           ))}
@@ -64,13 +77,13 @@ export default function AboutPage() {
       </Reveal>
 
       <Reveal delay={0.25}>
-        <div className="ink-card mb-16 p-8 text-center">
-          <p className="text-sm text-ink-soft">
-            想先感受一下 AI 对话的雏形？
+        <div className="card-soft mb-16 p-8 text-center">
+          <p className="text-sm text-slate-mid">
+            想试试真实的 AI 对话？带上你的模型服务地址来。
           </p>
           <Link
             href="/chat"
-            className="btn-vermilion mt-5 inline-block px-7 py-3 text-sm font-bold"
+            className="btn-black mt-4 inline-block rounded-lg px-7 py-3 text-sm font-semibold"
           >
             去对话页 →
           </Link>

@@ -1,257 +1,226 @@
 import Link from "next/link";
 import { getAllPosts } from "@/lib/posts";
+import { linkGroups } from "@/lib/links";
 import Reveal from "@/components/motion/Reveal";
-import Typewriter from "@/components/motion/Typewriter";
-import Marquee from "@/components/motion/Marquee";
-
-const tickerItems = [
-  "开源 AI 对话",
-  "前端教程",
-  "效率工具",
-  "提示词技巧",
-  "行业资讯",
-  "生活日常",
-  "Next.js",
-  "自托管",
-  "大模型",
-];
+import VideoBackground from "@/components/VideoBackground";
+import HeroAsk from "@/components/HeroAsk";
+import PostCard from "@/components/PostCard";
+import { Star, ExternalLink } from "@/components/icons";
 
 const toolPreviews = [
   {
-    no: "01",
-    name: "AI 对话助手",
-    desc: "站内即用的开源 AI 聊天，边读文章边提问，阅读与提问同时发生。",
-    tag: "雏形可体验",
-    accent: true,
+    name: "AI 对话",
+    desc: "选择模型、上传文件，真实可用的站内对话。",
+    tag: "已上线",
+    live: true,
+    href: "/chat",
   },
   {
-    no: "02",
+    name: "多模型接入",
+    desc: "OpenAI 兼容接口与 Ollama 本地模型自由切换。",
+    tag: "已上线",
+    live: true,
+    href: "/chat",
+  },
+  {
     name: "提示词实验室",
-    desc: "收藏、管理、测试你的提示词模板，配合教程一起练习。",
+    desc: "收藏、管理、测试你的提示词模板。",
     tag: "规划中",
-    accent: false,
+    live: false,
+    href: "/tools",
   },
   {
-    no: "03",
-    name: "模型广场",
-    desc: "Llama、Qwen、DeepSeek 等开源模型自由切换、对比回答。",
-    tag: "规划中",
-    accent: false,
-  },
-  {
-    no: "04",
     name: "文章 AI 助读",
-    desc: "在文章页一键唤起 AI：总结全文、解释术语、生成练习题。",
+    desc: "在文章页一键总结全文、解释术语。",
     tag: "规划中",
-    accent: false,
+    live: false,
+    href: "/tools",
   },
 ];
 
-const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+const quickLinks = linkGroups.flatMap((g) => g.links).slice(0, 8);
 
 export default function HomePage() {
-  const posts = getAllPosts();
-  const now = new Date();
-  const dateline = `${now.getFullYear()} 年 ${now.getMonth() + 1} 月 ${now.getDate()} 日 · ${weekdays[now.getDay()]}`;
+  const posts = getAllPosts().slice(0, 3);
 
   return (
     <div>
-      {/* ============ 头版 Hero ============ */}
-      <section className="mx-auto max-w-6xl px-5 pt-28">
-        {/* 报头信息行 */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-ink pb-3 text-xs tracking-widest text-ink-faint">
-          <span>VOL.01 · 数字刊物</span>
-          <span>{dateline}</span>
-          <span className="hidden md:inline">阅读 × 学习 × AI</span>
-        </div>
+      {/* ============ Hero（视频背景） ============ */}
+      <section className="relative flex min-h-screen flex-col justify-center overflow-hidden px-6 lg:px-[120px]">
+        <VideoBackground />
 
-        <div className="py-14 md:py-20">
-          <h1 className="font-serif-display text-5xl font-black leading-[1.15] tracking-tight md:text-7xl">
-            <span className="line-reveal">不止是博客，</span>
-            <span className="line-reveal" style={{ animationDelay: "0.15s" }}>
-              这里可以
-              <Typewriter
-                phrases={["与 AI 对话", "学到新东西", "看见新资讯", "记录小日常"]}
-              />
+        {/* 提示词规格：内容上移 50px；徽章→标题 34px、标题→副标题 34px、副标题→提问框 44px */}
+        <div className="relative -mt-[50px] flex flex-col items-center pt-24 text-center">
+          {/* 徽章组件 */}
+          <div className="flex items-center rounded-full bg-white/90 py-1 pl-1 pr-4 text-sm shadow-md shadow-black/5">
+            <span className="mr-2.5 flex items-center gap-1 rounded-full bg-badge-dark px-2.5 py-1 text-xs font-medium text-white">
+              <Star className="h-3 w-3 text-lime" />
+              New
             </span>
+            <span className="font-body text-sm text-black/80">
+              站内 AI 对话已支持选模型与传文件
+            </span>
+          </div>
+
+          {/* 主标题：Fustat Bold 80px */}
+          <h1 className="font-display mt-[34px] max-w-4xl text-5xl font-bold leading-none tracking-[-2px] md:text-[80px] md:tracking-[-4.8px]">
+            边读边问
+            <br className="md:hidden" />
+            ，学得更快
           </h1>
 
-          <div className="mt-10 grid gap-8 md:grid-cols-[1fr_auto] md:items-end">
-            <p className="max-w-xl text-base leading-loose text-ink-soft md:text-lg">
-              HaizhuAI 是一份「纸与墨」风格的数字刊物 ——
-              分享资讯、教程与日常，并集成开源 AI 对话工具，
-              让阅读与提问同时发生。
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link
-                href="/blog"
-                className="btn-vermilion px-7 py-3 text-sm font-bold"
-              >
-                开始阅读
-              </Link>
-              <Link
-                href="/chat"
-                className="btn-outline-ink px-7 py-3 text-sm font-bold"
-              >
-                与 AI 对话 →
-              </Link>
-            </div>
+          {/* 副标题：Fustat Medium 20px #505050 */}
+          <p className="font-display mt-[34px] max-w-[736px] text-lg font-medium tracking-[-0.4px] text-slate-mid md:text-xl">
+            上传你的资料，向开源 AI 提问，即刻获得答案。
+            读文章、学教程、聊模型，一个站点全部搞定。
+          </p>
+
+          {/* 提问框 */}
+          <div className="mt-[44px] w-full">
+            <HeroAsk />
           </div>
         </div>
       </section>
 
-      {/* ============ 新闻滚动条 ============ */}
-      <Marquee>
-        {tickerItems.map((item) => (
-          <span
-            key={item}
-            className="flex items-center gap-8 whitespace-nowrap text-sm tracking-wider text-ink-soft"
-          >
-            {item}
-            <span className="text-vermilion">●</span>
-          </span>
-        ))}
-      </Marquee>
-
-      {/* ============ 编辑索引 · 最新文章 ============ */}
-      <section className="mx-auto max-w-6xl px-5 py-20">
+      {/* ============ 最新文章 ============ */}
+      <section className="mx-auto max-w-6xl px-6 py-20">
         <Reveal>
-          <div className="mb-8 flex items-end justify-between">
+          <div className="mb-10 flex items-end justify-between">
             <div>
-              <p className="text-xs font-bold tracking-[0.3em] text-vermilion">
-                INDEX / 目录
+              <p className="font-grotesk text-sm font-semibold text-[#2aa11d]">
+                BLOG
               </p>
-              <h2 className="font-serif-display mt-2 text-3xl font-black md:text-4xl">
+              <h2 className="font-grotesk mt-1 text-3xl font-bold tracking-[-1px] md:text-4xl">
                 最新文章
               </h2>
             </div>
-            <Link
-              href="/blog"
-              className="link-ink text-sm text-ink-soft"
-            >
+            <Link href="/blog" className="link-under text-sm text-slate-mid">
               全部文章 →
             </Link>
           </div>
         </Reveal>
 
-        <div className="rule-strong" />
-        {posts.slice(0, 4).map((post, i) => (
-          <Reveal key={post.slug} delay={i * 0.08}>
-            <Link href={`/blog/${post.slug}`} className="group block">
-              <article className="index-row grid grid-cols-[auto_1fr] items-baseline gap-5 border-b border-rule py-6 md:grid-cols-[auto_1fr_auto] md:gap-8">
-                <span className="font-serif-display text-3xl font-black text-rule transition-colors group-hover:text-vermilion md:text-4xl">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs tracking-wider text-ink-faint">
-                    <span className="font-bold text-vermilion">
-                      {post.category}
-                    </span>
-                    <span>{post.date}</span>
-                    <span>约 {post.readingMinutes} 分钟</span>
-                  </div>
-                  <h3 className="font-serif-display mt-2 text-xl font-bold leading-snug md:text-2xl">
-                    {post.title}
-                  </h3>
-                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-faint">
-                    {post.excerpt}
-                  </p>
-                </div>
-                <span className="hidden text-2xl text-ink-faint transition-all duration-300 group-hover:translate-x-1.5 group-hover:text-vermilion md:block">
-                  →
-                </span>
-              </article>
-            </Link>
-          </Reveal>
-        ))}
+        <div className="grid gap-6 md:grid-cols-3">
+          {posts.map((post, i) => (
+            <Reveal key={post.slug} delay={i * 0.1}>
+              <PostCard post={post} />
+            </Reveal>
+          ))}
+        </div>
       </section>
 
-      {/* ============ AI 工具栏目 ============ */}
-      <section className="border-y border-rule bg-paper-warm/60">
-        <div className="mx-auto max-w-6xl px-5 py-20">
+      {/* ============ AI 工具 ============ */}
+      <section className="bg-cloud/70 py-20">
+        <div className="mx-auto max-w-6xl px-6">
           <Reveal>
-            <p className="text-xs font-bold tracking-[0.3em] text-vermilion">
-              AI TOOLKIT / 工具
+            <p className="font-grotesk text-sm font-semibold text-[#2aa11d]">
+              AI TOOLKIT
             </p>
-            <h2 className="font-serif-display mt-2 max-w-lg text-3xl font-black leading-snug md:text-4xl">
-              AI 工具，长在刊物里
+            <h2 className="font-grotesk mt-1 text-3xl font-bold tracking-[-1px] md:text-4xl">
+              AI 工具，长在站点里
             </h2>
-            <p className="mt-4 max-w-lg leading-relaxed text-ink-soft">
-              开源 AI 对话工具将逐步集成到这里 ——
-              不用离开页面，就能向 AI 提问、练习提示词、比较模型。
+            <p className="mt-3 max-w-lg text-slate-mid">
+              对话工具已真实可用 —— 支持 OpenAI 兼容接口与 Ollama
+              本地模型，还能上传文件让 AI 帮你处理。
             </p>
           </Reveal>
 
-          <div className="mt-12 grid gap-5 md:grid-cols-2">
+          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {toolPreviews.map((tool, i) => (
               <Reveal key={tool.name} delay={i * 0.08}>
-                <div className="ink-card h-full p-7">
-                  <div className="flex items-start justify-between">
+                <Link href={tool.href} className="block h-full">
+                  <div className="card-soft flex h-full flex-col p-6">
                     <span
-                      className={`font-serif-display text-3xl font-black ${
-                        tool.accent
-                          ? "text-vermilion"
-                          : "text-rule"
-                      }`}
-                    >
-                      {tool.no}
-                    </span>
-                    <span
-                      className={`px-2.5 py-1 text-xs font-bold tracking-wider ${
-                        tool.accent
-                          ? "bg-vermilion text-white"
-                          : "border border-rule text-ink-faint"
+                      className={`self-start rounded-md px-2.5 py-1 text-xs font-semibold ${
+                        tool.live
+                          ? "bg-[rgba(90,225,76,0.2)] text-[#1d7a12]"
+                          : "bg-cloud text-slate-mid"
                       }`}
                     >
                       {tool.tag}
                     </span>
+                    <h3 className="font-grotesk mt-4 text-lg font-bold">
+                      {tool.name}
+                    </h3>
+                    <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-mid">
+                      {tool.desc}
+                    </p>
                   </div>
-                  <h3 className="font-serif-display mt-5 text-xl font-bold">
-                    {tool.name}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-ink-faint">
-                    {tool.desc}
-                  </p>
-                </div>
+                </Link>
               </Reveal>
             ))}
           </div>
-
-          <Reveal delay={0.2}>
-            <div className="mt-10 text-center">
-              <Link
-                href="/tools"
-                className="link-ink text-sm font-bold text-ink"
-              >
-                查看全部工具计划 →
-              </Link>
-            </div>
-          </Reveal>
         </div>
       </section>
 
-      {/* ============ 卷尾 CTA ============ */}
-      <section className="mx-auto max-w-6xl px-5 py-24 text-center">
+      {/* ============ 站点导航（友情快捷链接） ============ */}
+      <section className="mx-auto max-w-6xl px-6 py-20">
         <Reveal>
-          <p className="font-serif-display text-2xl italic text-ink-faint">
-            "
-          </p>
-          <h2 className="font-serif-display mx-auto max-w-2xl text-3xl font-black leading-snug md:text-5xl">
-            准备好一起
-            <span className="text-vermilion">边聊边学</span>
-            了吗？
-          </h2>
-          <p className="mx-auto mt-5 max-w-md leading-relaxed text-ink-soft">
-            AI 对话功能正在接入中，先去读几篇文章，
-            或到对话页抢先体验界面雏形。
-          </p>
-          <div className="mt-9 flex justify-center gap-4">
-            <Link
-              href="/chat"
-              className="btn-vermilion px-8 py-3.5 text-sm font-bold"
-            >
-              进入对话
+          <div className="mb-10 flex items-end justify-between">
+            <div>
+              <p className="font-grotesk text-sm font-semibold text-[#2aa11d]">
+                LINKS
+              </p>
+              <h2 className="font-grotesk mt-1 text-3xl font-bold tracking-[-1px] md:text-4xl">
+                站点导航
+              </h2>
+              <p className="mt-3 max-w-lg text-slate-mid">
+                精选的开源项目与实用站点，无广告、无跟踪。
+              </p>
+            </div>
+            <Link href="/links" className="link-under text-sm text-slate-mid">
+              全部链接 →
             </Link>
+          </div>
+        </Reveal>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {quickLinks.map((l, i) => (
+            <Reveal key={l.url} delay={(i % 4) * 0.06}>
+              <a
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="card-soft group flex items-start justify-between gap-3 p-5"
+              >
+                <div>
+                  <p className="font-grotesk text-sm font-bold">{l.name}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-mid">
+                    {l.desc}
+                  </p>
+                </div>
+                <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-black/25 transition-colors group-hover:text-black" />
+              </a>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* ============ CTA ============ */}
+      <section className="mx-auto max-w-6xl px-6 pb-4">
+        <Reveal>
+          <div className="rounded-3xl bg-badge-dark px-8 py-14 text-center text-white md:py-16">
+            <h2 className="font-grotesk text-3xl font-bold tracking-[-1px] md:text-4xl">
+              准备好一起<span className="text-lime">边聊边学</span>了吗？
+            </h2>
+            <p className="mx-auto mt-4 max-w-md text-white/70">
+              连接你自己的模型服务（OpenAI 兼容 / Ollama），
+              或先用演示模式感受交互。
+            </p>
+            <div className="mt-8 flex justify-center gap-3">
+              <Link
+                href="/chat"
+                className="btn-lime rounded-lg px-7 py-3 text-sm font-bold"
+              >
+                开始对话
+              </Link>
+              <Link
+                href="/blog"
+                className="rounded-lg border border-white/25 px-7 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+              >
+                先去读文章
+              </Link>
+            </div>
           </div>
         </Reveal>
       </section>

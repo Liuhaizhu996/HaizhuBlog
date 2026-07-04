@@ -1,31 +1,61 @@
 import Link from "next/link";
+import { linkGroups } from "@/lib/links";
+
+const friendLinks = linkGroups
+  .flatMap((g) => g.links)
+  .slice(0, 6);
 
 export default function Footer() {
   return (
-    <footer className="relative mt-24">
-      <div className="rule-strong mx-auto max-w-6xl" />
-      <div className="mx-auto max-w-6xl px-5 py-12">
-        <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
-          <div>
-            <p className="font-serif-display text-2xl font-black">
-              Haizhu<span className="bg-vermilion px-1.5 text-white">AI</span>
-            </p>
-            <p className="mt-3 max-w-sm text-sm leading-relaxed text-ink-faint">
-              一份数字刊物 —— 在这里阅读、学习，并与 AI 一起探索。
-            </p>
-          </div>
-          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-soft">
-            <Link href="/blog" className="link-ink">文章</Link>
-            <Link href="/tools" className="link-ink">AI 工具</Link>
-            <Link href="/chat" className="link-ink">对话</Link>
-            <Link href="/about" className="link-ink">关于</Link>
-          </nav>
+    <footer className="mt-24 border-t border-hairline bg-cloud/60">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-[2fr_1fr_1fr]">
+        <div>
+          <p className="font-grotesk text-2xl font-semibold tracking-[-1.44px]">
+            Haizhu<span className="text-[#2aa11d]">AI</span>
+          </p>
+          <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-mid">
+            分享资讯、教程与日常，并集成开源 AI 对话工具 ——
+            在这里阅读、学习，并与 AI 一起探索。
+          </p>
         </div>
-        <div className="rule-h mt-10" />
-        <p className="mt-5 flex flex-wrap items-center gap-2 text-xs text-ink-faint">
-          <span>© {new Date().getFullYear()} HaizhuAI</span>
-          <span aria-hidden>·</span>
-          <span>纸与墨，字与光</span>
+
+        <nav>
+          <p className="font-grotesk text-sm font-semibold">站内</p>
+          <ul className="mt-4 space-y-2.5 text-sm text-slate-mid">
+            <li><Link href="/blog" className="hover:text-black">文章</Link></li>
+            <li><Link href="/tools" className="hover:text-black">AI 工具</Link></li>
+            <li><Link href="/chat" className="hover:text-black">AI 对话</Link></li>
+            <li><Link href="/links" className="hover:text-black">站点导航</Link></li>
+            <li><Link href="/about" className="hover:text-black">关于</Link></li>
+          </ul>
+        </nav>
+
+        <nav>
+          <p className="font-grotesk text-sm font-semibold">友情链接</p>
+          <ul className="mt-4 space-y-2.5 text-sm text-slate-mid">
+            {friendLinks.map((l) => (
+              <li key={l.url}>
+                <a
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="hover:text-black"
+                >
+                  {l.name}
+                </a>
+              </li>
+            ))}
+            <li>
+              <Link href="/links" className="font-medium text-black hover:underline">
+                更多 →
+              </Link>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      <div className="border-t border-hairline">
+        <p className="mx-auto max-w-6xl px-6 py-5 text-xs text-slate-mid">
+          © {new Date().getFullYear()} HaizhuAI · 用心分享每一篇内容 · 无广告，无跟踪
         </p>
       </div>
     </footer>

@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  /* 纸与墨 · Editorial Magazine */
-  --color-paper: #faf6ef;
-  --color-paper-warm: #f3ecdf;
-  --color-ink: #181511;
-  --color-ink-soft: #4a443b;
-  --color-ink-faint: #8b8378;
-  --color-vermilion: #e8442e;
-  --color-rule: #d9d0c0;
-  --font-serif: "Noto Serif SC", "Songti SC", "SimSun", Georgia, "Times New Roman", serif;
-  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
-    "Noto Sans SC", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* 浅色现代风 · 按 HERO SECTION 提示词规范 */
+  --color-coal: #000000;
+  --color-slate-mid: #505050;
+  --color-cloud: #f8f8f8;
+  --color-lime: #5ae14c;
+  --color-badge-dark: #0e1311;
+  --color-hairline: #e7e7e7;
+  --font-grotesk: "Schibsted Grotesk", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fustat", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
 }
 
@@ -20,67 +20,70 @@ html {
 }
 
 body {
-  background-color: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
+  background-color: #ffffff;
+  color: var(--color-coal);
+  font-family: var(--font-body);
   overflow-x: hidden;
 }
 
 ::selection {
-  background: var(--color-vermilion);
-  color: var(--color-paper);
+  background: rgba(90, 225, 76, 0.35);
 }
 
-.font-serif-display {
-  font-family: var(--font-serif);
-  letter-spacing: 0.01em;
+/* ---------- 按钮 ---------- */
+.btn-black {
+  background: #000;
+  color: #fff;
+  transition: transform 0.2s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 
-/* ---------- 纸张颗粒 ---------- */
-.paper-grain {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  pointer-events: none;
-  opacity: 0.5;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.5 0 0 0 0 0.42 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+.btn-black:hover {
+  background: #1c1c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4);
 }
 
-/* ---------- 报纸细线 ---------- */
-.rule-h {
-  height: 1px;
-  background: var(--color-rule);
+.btn-ghost {
+  background: transparent;
+  transition: background 0.2s ease;
 }
 
-.rule-strong {
-  height: 2px;
-  background: var(--color-ink);
+.btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
-/* ---------- 标题逐行揭示 ---------- */
-@keyframes line-reveal {
-  from {
-    clip-path: inset(0 0 100% 0);
-    transform: translateY(0.35em);
-  }
-  to {
-    clip-path: inset(-0.2em 0 -0.2em 0);
-    transform: translateY(0);
-  }
+.btn-lime {
+  background: rgba(90, 225, 76, 0.89);
+  color: #052e05;
+  transition: filter 0.2s ease, transform 0.2s ease;
 }
 
-.line-reveal {
-  display: block;
-  animation: line-reveal 0.9s cubic-bezier(0.22, 0.7, 0.3, 1) both;
+.btn-lime:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
 }
 
-/* ---------- 下划线书写动画 ---------- */
-.link-ink {
+/* ---------- 卡片 ---------- */
+.card-soft {
+  background: #fff;
+  border: 1px solid var(--color-hairline);
+  border-radius: 16px;
+  transition: transform 0.3s cubic-bezier(0.22, 0.7, 0.3, 1), box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.card-soft:hover {
+  transform: translateY(-4px);
+  border-color: #d0d0d0;
+  box-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.18);
+}
+
+/* ---------- 链接下划线 ---------- */
+.link-under {
   position: relative;
-  text-decoration: none;
 }
 
-.link-ink::after {
+.link-under::after {
   content: "";
   position: absolute;
   left: 0;
@@ -90,101 +93,35 @@ body {
   background: currentColor;
   transform: scaleX(0);
   transform-origin: right;
-  transition: transform 0.35s cubic-bezier(0.22, 0.7, 0.3, 1);
+  transition: transform 0.3s cubic-bezier(0.22, 0.7, 0.3, 1);
 }
 
-.link-ink:hover::after {
+.link-under:hover::after {
   transform: scaleX(1);
   transform-origin: left;
 }
 
-/* ---------- 新闻滚动条（ticker）---------- */
-.ticker-track {
-  display: flex;
-  width: max-content;
-  animation: ticker 40s linear infinite;
-}
-
-.ticker-track:hover {
-  animation-play-state: paused;
-}
-
-@keyframes ticker {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
-/* ---------- 编辑索引行 ---------- */
-.index-row {
-  transition: background 0.3s ease, padding-left 0.35s cubic-bezier(0.22, 0.7, 0.3, 1);
-}
-
-.index-row:hover {
-  background: var(--color-paper-warm);
-  padding-left: 1rem;
-}
-
-/* ---------- 墨影卡片 ---------- */
-.ink-card {
-  background: #fffdf8;
-  border: 1px solid var(--color-rule);
-  transition: transform 0.35s cubic-bezier(0.22, 0.7, 0.3, 1), box-shadow 0.35s ease,
-    border-color 0.35s ease;
-}
-
-.ink-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--color-ink);
-  box-shadow: 6px 6px 0 0 var(--color-ink);
-}
-
-/* ---------- 朱砂按钮 ---------- */
-.btn-vermilion {
-  background: var(--color-vermilion);
-  color: #fff;
-  transition: transform 0.2s ease, box-shadow 0.25s ease;
-}
-
-.btn-vermilion:hover {
-  transform: translateY(-2px);
-  box-shadow: 4px 4px 0 0 var(--color-ink);
-}
-
-.btn-outline-ink {
-  border: 1.5px solid var(--color-ink);
-  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease,
-    transform 0.2s ease;
-}
-
-.btn-outline-ink:hover {
-  background: var(--color-ink);
-  color: var(--color-paper);
-  transform: translateY(-2px);
-  box-shadow: 4px 4px 0 0 var(--color-vermilion);
-}
-
-/* ---------- 文章正文排版 ---------- */
+/* ---------- 文章正文排版（浅色）---------- */
 .prose-haizhu {
-  line-height: 2;
-  color: var(--color-ink-soft);
+  line-height: 1.9;
+  color: #333;
   font-size: 1.02rem;
 }
 
 .prose-haizhu h2 {
-  font-family: var(--font-serif);
-  font-size: 1.6rem;
+  font-family: var(--font-grotesk);
+  font-size: 1.5rem;
   font-weight: 700;
-  color: var(--color-ink);
-  margin: 2.4rem 0 1rem;
-  padding-top: 1.2rem;
-  border-top: 1px solid var(--color-rule);
+  letter-spacing: -0.02em;
+  color: #000;
+  margin: 2.2rem 0 1rem;
 }
 
 .prose-haizhu h3 {
-  font-family: var(--font-serif);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-ink);
+  font-family: var(--font-grotesk);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #000;
   margin: 1.8rem 0 0.8rem;
 }
 
@@ -193,12 +130,14 @@ body {
 }
 
 .prose-haizhu strong {
-  color: var(--color-ink);
+  color: #000;
 }
 
 .prose-haizhu a {
-  color: var(--color-vermilion);
+  color: #000;
   text-decoration: underline;
+  text-decoration-color: rgba(90, 225, 76, 0.89);
+  text-decoration-thickness: 2px;
   text-underline-offset: 4px;
 }
 
@@ -213,23 +152,19 @@ body {
 
 .prose-haizhu li { margin: 0.4rem 0; }
 
-.prose-haizhu li::marker {
-  color: var(--color-vermilion);
-}
-
 .prose-haizhu code {
   font-family: var(--font-mono);
   font-size: 0.875em;
-  background: var(--color-paper-warm);
-  border: 1px solid var(--color-rule);
-  border-radius: 4px;
+  background: var(--color-cloud);
+  border: 1px solid var(--color-hairline);
+  border-radius: 6px;
   padding: 0.15em 0.4em;
-  color: #b3341f;
+  color: #0e1311;
 }
 
 .prose-haizhu pre {
-  background: var(--color-ink);
-  border-radius: 8px;
+  background: #0e1311;
+  border-radius: 12px;
   padding: 1.2rem;
   overflow-x: auto;
   margin: 1.4rem 0;
@@ -239,25 +174,20 @@ body {
   background: none;
   border: none;
   padding: 0;
-  color: #ede8dd;
+  color: #e8f0e6;
 }
 
 .prose-haizhu blockquote {
-  border-left: 3px solid var(--color-vermilion);
+  border-left: 3px solid rgba(90, 225, 76, 0.89);
   padding-left: 1.2rem;
   margin: 1.6rem 0;
-  font-family: var(--font-serif);
-  font-style: italic;
-  color: var(--color-ink-soft);
+  color: var(--color-slate-mid);
 }
 
 /* 尊重系统减弱动效偏好 */
 @media (prefers-reduced-motion: reduce) {
-  .ticker-track,
-  .line-reveal {
-    animation: none;
-  }
-  .line-reveal {
-    clip-path: none;
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

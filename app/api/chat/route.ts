@@ -1,22 +1,122 @@
 import { NextResponse } from "next/server";
 
 /**
- * 站内 AI 对话接口（雏形）。
+ * 站内 AI 对话接口。
  *
- * 当前返回内置的演示回复。后续接入真实模型时，只需替换本文件的实现，
- * 前端无需改动。可选的接入方向：
- *  - Ollama:      POST http://localhost:11434/api/chat
- *  - OpenAI 兼容:  任何提供 /v1/chat/completions 的开源推理服务
- *  - 云端 API:     在环境变量中配置密钥后转发
+ * 支持两种真实后端（参考 NextChat / Open WebUI 的接入方式）：
+ *  - OpenAI 兼容接口：{baseUrl}/v1/chat/completions（DeepSeek、通义、硅基流动、
+ *    OneAPI、LM Studio、vLLM 等均兼容此协议）
+ *  - Ollama 本地服务：{baseUrl}/api/chat
+ *
+ * 配置优先级：请求体里的用户配置（浏览器本地保存）> 服务端环境变量
+ *  AI_PROVIDER=openai|ollama, AI_BASE_URL, AI_API_KEY, AI_MODELS(逗号分隔)
+ *
+ * 未配置任何后端时返回演示回复（JSON，带 demo: true 标记）。
+ * 真实后端统一转为 text/plain 流式输出，前端按增量渲染。
  */
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
+type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+
+type ClientConfig = {
+  provider?: "openai" | "ollama";
+  baseUrl?: string;
+  apiKey?: string;
+};
+
+function resolveConfig(config: ClientConfig | undefined) {
+  const provider =
+    config?.provider ||
+    (process.env.AI_PROVIDER as "openai" | "ollama") ||
+    "openai";
+  const baseUrl = (config?.baseUrl?.trim() || process.env.AI_BASE_URL || "")
+    .replace(/\/+$/, "");
+  const apiKey = config?.apiKey?.trim() || process.env.AI_API_KEY || "";
+  return { provider, baseUrl, apiKey };
+}
+
+/** 把上游的 OpenAI SSE 流转换为纯文本增量流 */
+function openaiToTextStream(upstream: ReadableStream<Uint8Array>) {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = "";
+
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const reader = upstream.getReader();
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const data = line.trim();
+            if (!data.startsWith("data:")) continue;
+            const payload = data.slice(5).trim();
+            if (payload === "[DONE]") continue;
+            try {
+              const json = JSON.parse(payload);
+              const delta: string =
+                json.choices?.[0]?.delta?.content ??
+                json.choices?.[0]?.message?.content ??
+                "";
+              if (delta) controller.enqueue(encoder.encode(delta));
+            } catch {
+              // 忽略无法解析的行
+            }
+          }
+        }
+      } finally {
+        controller.close();
+        reader.releaseLock();
+      }
+    },
+  });
+}
+
+/** 把 Ollama 的 NDJSON 流转换为纯文本增量流 */
+function ollamaToTextStream(upstream: ReadableStream<Uint8Array>) {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = "";
+
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const reader = upstream.getReader();
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const json = JSON.parse(line);
+              const delta: string = json.message?.content ?? "";
+              if (delta) controller.enqueue(encoder.encode(delta));
+            } catch {
+              // 忽略无法解析的行
+            }
+          }
+        }
+      } finally {
+        controller.close();
+        reader.releaseLock();
+      }
+    },
+  });
+}
+
+/* ---------- 演示模式 ---------- */
 
 const cannedReplies: Array<{ keywords: string[]; reply: string }> = [
   {
     keywords: ["网站", "站点", "能做什么", "介绍"],
     reply:
-      "HaizhuAI 是一份「不止于博客」的数字刊物：\n\n1. 📚 文章板块：分享资讯、教程与日常；\n2. 🤖 AI 工具板块：逐步集成开源 AI 对话工具；\n3. 💬 对话板块：就是你现在所在的地方～\n\n目前我还是演示回复，等开源大模型接入后就能真正陪你聊天啦。",
+      "HaizhuAI 是一个「不止于博客」的站点：\n\n1. 📚 文章板块：分享资讯、教程与日常；\n2. 🤖 AI 对话：支持选择模型、上传文件（就是当前页面）；\n3. 🧭 站点导航：精选开源项目与实用工具。\n\n点击右上角 ⚙ 设置，填入你的 OpenAI 兼容接口或 Ollama 地址，我就能真实回答问题了。",
   },
   {
     keywords: ["提示词", "prompt"],
@@ -26,31 +126,91 @@ const cannedReplies: Array<{ keywords: string[]; reply: string }> = [
   {
     keywords: ["开源", "工具", "推荐", "模型"],
     reply:
-      "几款值得关注的开源 AI 对话工具：\n\n• Ollama —— 本地一键跑大模型；\n• LobeChat —— 高颜值聊天界面；\n• Open WebUI —— 功能全面的自托管平台；\n• NextChat —— 轻量易部署。\n\n本站后续会优先支持 Ollama 接入，敬请期待。",
+      "几款值得关注的开源 AI 对话工具：\n\n• Cherry Studio —— 多模型桌面客户端；\n• NextChat —— 轻量易部署；\n• Open WebUI —— 功能全面的自托管平台；\n• LobeChat —— 高颜值聊天框架；\n• Ollama —— 本地一键跑大模型。\n\n本站的「站点导航」页收录了它们的链接。",
   },
 ];
 
 const fallbackReply =
-  "收到！我目前还是界面雏形，真正的开源大模型正在接入中 🚧\n\n你可以先逛逛「文章」板块学点新东西，或到「AI 工具」页看看接入计划。等模型上线后，我会在这里认真回答你的每一个问题。";
+  "收到！当前是演示模式 🚧\n\n点击右上角 ⚙ 设置，填入任意 OpenAI 兼容接口（DeepSeek / 通义 / 硅基流动 / OneAPI…）或本地 Ollama 地址，即可真实对话。密钥只保存在你的浏览器里。";
 
-export async function POST(req: Request) {
-  let messages: ChatMessage[] = [];
-  try {
-    const body = await req.json();
-    if (Array.isArray(body?.messages)) messages = body.messages;
-  } catch {
-    // 忽略解析错误，走兜底回复
-  }
-
+function demoReply(messages: ChatMessage[]) {
   const lastUser =
     [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
-
-  // 模拟真实模型的思考延迟
-  await new Promise((r) => setTimeout(r, 600));
-
   const matched = cannedReplies.find(({ keywords }) =>
     keywords.some((k) => lastUser.toLowerCase().includes(k.toLowerCase()))
   );
+  return NextResponse.json({ reply: matched?.reply ?? fallbackReply, demo: true });
+}
 
-  return NextResponse.json({ reply: matched?.reply ?? fallbackReply });
+/* ---------- 入口 ---------- */
+
+export async function POST(req: Request) {
+  let messages: ChatMessage[] = [];
+  let model = "";
+  let config: ClientConfig | undefined;
+
+  try {
+    const body = await req.json();
+    if (Array.isArray(body?.messages)) messages = body.messages;
+    model = typeof body?.model === "string" ? body.model : "";
+    config = body?.config;
+  } catch {
+    return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
+  }
+
+  const { provider, baseUrl, apiKey } = resolveConfig(config);
+
+  if (!baseUrl) return demoReply(messages);
+
+  try {
+    let upstream: Response;
+
+    if (provider === "ollama") {
+      upstream = await fetch(`${baseUrl}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model, messages, stream: true }),
+        signal: AbortSignal.timeout(120_000),
+      });
+    } else {
+      upstream = await fetch(`${baseUrl}/v1/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        },
+        body: JSON.stringify({ model, messages, stream: true }),
+        signal: AbortSignal.timeout(120_000),
+      });
+    }
+
+    if (!upstream.ok || !upstream.body) {
+      const detail = await upstream.text().catch(() => "");
+      return NextResponse.json(
+        {
+          error: `模型服务返回 ${upstream.status}：${detail.slice(0, 300) || "无详细信息"}`,
+        },
+        { status: 502 }
+      );
+    }
+
+    const textStream =
+      provider === "ollama"
+        ? ollamaToTextStream(upstream.body)
+        : openaiToTextStream(upstream.body);
+
+    return new Response(textStream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+      },
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json(
+      { error: `无法连接模型服务：${msg}` },
+      { status: 502 }
+    );
+  }
 }

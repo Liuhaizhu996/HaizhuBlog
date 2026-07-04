@@ -23,45 +23,42 @@ export default async function PostPage({ params }: Props) {
   if (!post) notFound();
 
   return (
-    <article className="mx-auto max-w-3xl px-5 pt-28">
+    <article className="mx-auto max-w-3xl px-6 pt-28">
       <Reveal>
-        <Link
-          href="/blog"
-          className="link-ink text-sm text-ink-soft"
-        >
+        <Link href="/blog" className="link-under text-sm text-slate-mid">
           ← 返回文章列表
         </Link>
 
-        <header className="mt-10">
-          <div className="flex flex-wrap items-center gap-3 text-xs tracking-wider text-ink-faint">
-            <span className="bg-vermilion px-2.5 py-1 font-bold text-white">
+        <header className="mt-8">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-black/40">
+            <span className="rounded-md bg-black px-2.5 py-1 font-semibold text-white">
               {post.category}
             </span>
             <time>{post.date}</time>
             <span>约 {post.readingMinutes} 分钟</span>
           </div>
-          <h1 className="font-serif-display mt-6 text-3xl font-black leading-snug md:text-5xl">
+          <h1 className="font-grotesk mt-5 text-3xl font-bold leading-snug tracking-[-1px] md:text-4xl">
             {post.title}
           </h1>
         </header>
 
-        <div className="rule-strong mt-8" />
+        <div className="mt-8 h-px bg-hairline" />
 
         <div
-          className="prose-haizhu mt-8 pb-8"
+          className="prose-haizhu mt-6 pb-8"
           dangerouslySetInnerHTML={{ __html: post.html }}
         />
 
         {/* 底部引导 */}
-        <div className="ink-card mb-10 p-7 text-center">
-          <p className="text-sm text-ink-soft">
-            读完有疑问？以后可以直接在站内向 AI 提问。
+        <div className="card-soft mb-10 p-6 text-center">
+          <p className="text-sm text-slate-mid">
+            读完有疑问？直接把问题（或这篇文章的文件）丢给站内 AI。
           </p>
           <Link
             href="/chat"
-            className="link-ink mt-3 inline-block text-sm font-bold text-vermilion"
+            className="btn-black mt-4 inline-block rounded-lg px-6 py-2.5 text-sm font-semibold"
           >
-            去对话页看看 →
+            去对话页提问 →
           </Link>
         </div>
       </Reveal>

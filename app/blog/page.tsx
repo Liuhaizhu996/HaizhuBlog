@@ -12,18 +12,15 @@ export default function BlogPage() {
   const posts = getAllPosts();
 
   return (
-    <div className="mx-auto max-w-6xl px-5 pt-28">
+    <div className="mx-auto max-w-6xl px-6 pt-28">
       <Reveal>
-        <p className="text-xs font-bold tracking-[0.3em] text-vermilion">
-          ARCHIVE / 文库
-        </p>
-        <h1 className="font-serif-display mt-2 text-4xl font-black md:text-6xl">
+        <p className="font-grotesk text-sm font-semibold text-[#2aa11d]">BLOG</p>
+        <h1 className="font-grotesk mt-1 text-4xl font-bold tracking-[-1.5px] md:text-5xl">
           全部文章
         </h1>
-        <p className="mt-4 max-w-lg leading-relaxed text-ink-soft">
+        <p className="mt-4 max-w-lg text-slate-mid">
           资讯速递、上手教程、日常随笔 —— 每一篇都认真写。
         </p>
-        <div className="rule-strong mt-8" />
       </Reveal>
 
       <BlogList posts={posts} />
