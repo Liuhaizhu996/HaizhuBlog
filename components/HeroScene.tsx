@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
 /**
  * 动态图片背景场景（替代视频背景）：
  * - 双图自适应：横版 fuji-landscape 适配桌面 UI，竖版 fuji-portrait 适配移动 UI
@@ -9,7 +7,7 @@ import { useEffect, useRef } from "react";
  * - 水面波纹：SVG feTurbulence + feDisplacementMap（SMIL 动画）扭曲画面下部
  *   水域，叠加扩散的椭圆涟漪圈
  * - 樱花漂落：程序化生成的花瓣粒子，随风摆动旋转下落
- * - 滚动视差：背景图、涟漪与花瓣按不同速率跟随滚动（rAF 驱动）
+ * （曾有滚动视差，因部分设备滚动掉帧已移除）
  */
 
 /* 花瓣参数用确定性伪随机生成，保证 SSR/CSR 一致 */
@@ -61,31 +59,6 @@ function SceneImage({ src, className }: { src: string; className?: string }) {
 }
 
 export default function HeroScene() {
-  const bgRef = useRef<HTMLDivElement>(null);
-  const fxRef = useRef<HTMLDivElement>(null);
-
-  /* 滚动视差：背景 0.35 倍速、花瓣涟漪 0.15 倍速跟随滚动 */
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let raf = 0;
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const y = window.scrollY;
-        if (bgRef.current)
-          bgRef.current.style.transform = `translate3d(0, ${y * 0.35}px, 0)`;
-        if (fxRef.current)
-          fxRef.current.style.transform = `translate3d(0, ${y * 0.15}px, 0)`;
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-
   return (
     <div className="absolute inset-0 z-0 overflow-hidden" aria-hidden>
       {/* SVG 滤镜定义：湍流噪声随时间流动，位移水面像素形成波纹 */}
@@ -108,8 +81,8 @@ export default function HeroScene() {
         </filter>
       </svg>
 
-      {/* 背景图层（视差 0.35x），overscan 避免视差移动露底 */}
-      <div ref={bgRef} className="absolute -inset-x-0 -top-[12%] bottom-[-12%] will-change-transform">
+      {/* 背景图层 */}
+      <div className="absolute inset-0">
         {/* 桌面：横版 */}
         <SceneImage
           src="/hero/fuji-landscape.webp"
@@ -122,8 +95,8 @@ export default function HeroScene() {
         />
       </div>
 
-      {/* 特效图层（视差 0.15x）：涟漪圈 + 落樱 */}
-      <div ref={fxRef} className="absolute inset-0 will-change-transform">
+      {/* 特效图层：涟漪圈 + 落樱 */}
+      <div className="absolute inset-0">
         {RIPPLES.map((r, i) => (
           <span
             key={`r${i}`}
