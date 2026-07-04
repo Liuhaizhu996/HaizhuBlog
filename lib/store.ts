@@ -44,6 +44,8 @@ export type SiteSettings = {
   tgbot: {
     enabled: boolean;
     botUsername: string; // 不带 @ 的 Telegram 机器人用户名
+    botToken: string; // BotFather 下发的令牌（仅存服务器）
+    adminId: string; // 管理员的 Telegram 用户 ID（接收访客消息）
     greeting: string;
     sourceUrl: string;
   };
@@ -66,7 +68,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   tgbot: {
     enabled: true,
     botUsername: "",
-    greeting: "你好！我是站长的客服机器人，点击下方按钮即可与我双向对话 👋",
+    botToken: "",
+    adminId: "",
+    greeting: "你好！这里是站长的在线客服，直接输入消息即可，我会尽快回复 👋",
     sourceUrl: "https://github.com/xiaoyu132223/Customer-service-bot",
   },
   contacts: {

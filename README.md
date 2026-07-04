@@ -15,7 +15,9 @@
   - 双协议：任意 **OpenAI 兼容接口**（DeepSeek / 通义 / 硅基流动 / OneAPI / LM Studio / vLLM…）或本地 **Ollama**
   - **+ 号上传文件**（文本 / 代码，≤300KB×5），让 AI 总结、审查、改写
   - 流式输出、演示模式兜底；访客自配时密钥仅存浏览器 localStorage
-- **客服浮窗**：右下角 💬 小窗，接入 [Customer-service-bot](https://github.com/xiaoyu132223/Customer-service-bot) 风格的 Telegram 双向客服机器人
+- **TG 双向客服**：右下角 💬 浮窗即完整站内聊天（移植 [Customer-service-bot](https://github.com/xiaoyu132223/Customer-service-bot) 的机制，无需单独部署）——
+  访客网页发消息 → 转发到站长 Telegram → 站长「引用回复」→ 自动回到访客网页；
+  Bot Token / 管理员 ID 在后台配置，凭据仅存服务器；未配置时浮窗退化为 t.me 链接
 - **博客系统**：Markdown 即文章（`content/posts/*.md`），分类筛选（资讯 / 教程 / 日常）
 - **站点导航**：`/links` 精选开源项目与实用站点，无广告、无跟踪参数
 
@@ -27,7 +29,19 @@
 ADMIN_PASSWORD=你的强密码   # 未设置时默认 haizhuai-admin，部署后务必修改
 ```
 
-后台管理的数据保存在 `data/` 目录（settings.json / links.json），文章写入 `content/posts/`。自托管部署请确保这两个目录可写并纳入备份。
+后台管理的数据保存在 `data/` 目录（settings.json / links.json / tgchat.json），文章写入 `content/posts/`。自托管部署请确保这两个目录可写并纳入备份。
+
+## 💬 配置 TG 双向客服
+
+1. 在 Telegram 找 **@BotFather** → `/newbot` 创建机器人，拿到 Bot Token；
+2. 给你的新机器人发一条 `/start`（否则机器人无法主动私聊你）；
+3. 找 **@userinfobot** 查到自己的数字 ID；
+4. 后台 → 客服与联系方式 → 填入 Token 与数字 ID → 保存。
+
+访客在右下角浮窗发的消息会实时转发到你的 Telegram（带 `🆔ID` 会话标记），
+你对那条消息**引用回复**即可送回访客网页（3 秒内轮询送达）。
+服务端通过 getUpdates 长轮询接收回复（`app/api/tgchat/` + `lib/tgchat.ts`），
+若服务器无法直连 api.telegram.org，可用 `TG_API_BASE` 环境变量指向反代。
 
 ## 🧱 技术栈
 

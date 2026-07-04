@@ -28,6 +28,12 @@ export async function PUT(req: Request) {
         botUsername: String(body?.settings?.tgbot?.botUsername ?? "")
           .trim()
           .replace(/^@/, ""),
+        botToken: String(
+          body?.settings?.tgbot?.botToken ?? cur.tgbot.botToken
+        ).trim(),
+        adminId: String(
+          body?.settings?.tgbot?.adminId ?? cur.tgbot.adminId
+        ).trim(),
         greeting: String(body?.settings?.tgbot?.greeting ?? cur.tgbot.greeting),
         sourceUrl: cur.tgbot.sourceUrl,
       },

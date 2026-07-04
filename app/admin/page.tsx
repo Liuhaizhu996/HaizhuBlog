@@ -602,9 +602,9 @@ function BotPanel() {
   return (
     <div className="grid max-w-4xl gap-8 md:grid-cols-2">
       <div className="card-soft p-6">
-        <h2 className="font-grotesk text-lg font-bold">TG 客服机器人（右下角浮窗）</h2>
+        <h2 className="font-grotesk text-lg font-bold">TG 双向客服机器人（右下角浮窗）</h2>
         <p className="mt-1 text-xs leading-relaxed text-slate-mid">
-          双向客服机器人请按开源项目{" "}
+          已内置{" "}
           <a
             href={settings.tgbot.sourceUrl}
             target="_blank"
@@ -613,8 +613,10 @@ function BotPanel() {
           >
             Customer-service-bot
           </a>{" "}
-          部署（BotFather 创建机器人 → 部署项目 → 填入机器人用户名），
-          浮窗会引导访客跳转到与机器人的双向对话。
+          的双向对话机制，无需单独部署：访客在浮窗发消息 → 转发到你的
+          Telegram → 你对那条消息「引用回复」→ 自动送回访客网页。
+          配置步骤：① 在 @BotFather 创建机器人拿到 Token；② 给机器人发一条
+          /start；③ 用 @userinfobot 查到自己的数字 ID 填到下方。
         </p>
         <label className="mt-4 flex items-center gap-2 text-sm">
           <input
@@ -630,7 +632,36 @@ function BotPanel() {
           启用右下角客服浮窗
         </label>
         <label className="mt-4 block text-xs font-semibold text-slate-mid">
-          机器人用户名（不带 @，如 haizhu_service_bot）
+          Bot Token（仅存服务器，不下发给浏览器）
+          <input
+            type="password"
+            value={settings.tgbot.botToken}
+            onChange={(e) =>
+              setSettings({
+                ...settings,
+                tgbot: { ...settings.tgbot, botToken: e.target.value },
+              })
+            }
+            placeholder="123456789:AAxxxxxxxx…"
+            className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+          />
+        </label>
+        <label className="mt-3 block text-xs font-semibold text-slate-mid">
+          管理员 Telegram 数字 ID（接收访客消息）
+          <input
+            value={settings.tgbot.adminId}
+            onChange={(e) =>
+              setSettings({
+                ...settings,
+                tgbot: { ...settings.tgbot, adminId: e.target.value },
+              })
+            }
+            placeholder="例如 5123456789"
+            className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+          />
+        </label>
+        <label className="mt-3 block text-xs font-semibold text-slate-mid">
+          机器人用户名（可选，不带 @；未配置 Token 时浮窗退化为跳转 t.me 链接）
           <input
             value={settings.tgbot.botUsername}
             onChange={(e) =>

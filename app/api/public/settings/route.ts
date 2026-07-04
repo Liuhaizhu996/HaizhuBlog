@@ -12,6 +12,8 @@ export async function GET() {
       enabled: s.tgbot.enabled,
       botUsername: s.tgbot.botUsername,
       greeting: s.tgbot.greeting,
+      // 双向对话是否可用（token 与管理员 ID 均已在后台配置；不下发凭据本身）
+      embedded: Boolean(s.tgbot.botToken && s.tgbot.adminId),
     },
     contacts: s.contacts,
     serverAi: {
