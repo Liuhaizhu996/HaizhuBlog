@@ -29,7 +29,7 @@ COPY --from=builder /app/public ./public
 # 示例文章一并带入（后台发布的新文章也写到这里）
 COPY --from=builder /app/content ./content
 
-# data/ 存后台配置（settings/links/tools/auth/tgchat），需可写
+# data/ 存后台配置（settings/ai-news/links/tools/auth/tgchat），需可写
 RUN mkdir -p data content/posts \
   && chown -R nextjs:nodejs data content
 

@@ -13,8 +13,10 @@ services:
       # AI_API_KEY: sk-xxx
       # 可选：api.telegram.org 不可达时指向反代
       # TG_API_BASE: https://tg-proxy.example.com
+      # 可选：使用外部 Cron 调用 /api/cron/ai-news 时的 Bearer 密钥
+      # CRON_SECRET: 请替换为足够长的随机字符串
     volumes:
-      # 后台数据（设置 / 导航 / 工具 / 密码哈希 / 客服会话）
+      # 后台数据（设置 / AI 资讯配置与草稿 / 导航 / 工具 / 密码哈希 / 客服会话）
       - haizhuai-data:/app/data
       # 文章（后台发布的 Markdown）
       - haizhuai-posts:/app/content/posts

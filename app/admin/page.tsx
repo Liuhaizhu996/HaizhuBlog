@@ -9,6 +9,7 @@ import type {
   AiProvider,
   ModelMapping,
 } from "@/lib/store";
+import type { AiNewsConfig, NewsDraft, NewsRunLog } from "@/lib/ai-news";
 
 /* ================= 类型 ================= */
 
@@ -32,6 +33,7 @@ const EMPTY_DRAFT: PostDraft = {
 
 const TABS = [
   { key: "posts", label: "📝 文章发布" },
+  { key: "news", label: "📰 AI 资讯" },
   { key: "ai", label: "🤖 AI 模型" },
   { key: "tools", label: "🧰 AI 工具" },
   { key: "links", label: "🧭 站点导航" },
@@ -160,11 +162,437 @@ export default function AdminPage() {
 
       <div className="mt-8">
         {tab === "posts" && <PostsPanel />}
+        {tab === "news" && <NewsPanel />}
         {tab === "ai" && <AiPanel />}
         {tab === "tools" && <ToolsPanel />}
         {tab === "links" && <LinksPanel />}
         {tab === "bot" && <BotPanel />}
         {tab === "security" && <SecurityPanel />}
+      </div>
+    </div>
+  );
+}
+
+/* ================= AI 资讯自动化 ================= */
+
+type NewsPayload = {
+  config: AiNewsConfig;
+  drafts: NewsDraft[];
+  models: string[];
+  state: {
+    lastRunAt: string;
+    lastSuccessAt: string;
+    seenCount: number;
+    runs: NewsRunLog[];
+  };
+};
+
+function NewsPanel() {
+  const [data, setData] = useState<NewsPayload | null>(null);
+  const [msg, setMsg] = useState("");
+  const [running, setRunning] = useState(false);
+
+  const refresh = useCallback(async () => {
+    const res = await fetch("/api/admin/ai-news", { cache: "no-store" });
+    if (res.ok) setData(await res.json());
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  function setConfig(patch: Partial<AiNewsConfig>) {
+    setData((current) =>
+      current ? { ...current, config: { ...current.config, ...patch } } : current
+    );
+  }
+
+  function updateSource(index: number, patch: Partial<AiNewsConfig["sources"][number]>) {
+    if (!data) return;
+    setConfig({
+      sources: data.config.sources.map((source, i) =>
+        i === index ? { ...source, ...patch } : source
+      ),
+    });
+  }
+
+  async function persistConfig(showSuccess = true) {
+    if (!data) return false;
+    if (showSuccess) setMsg("保存中…");
+    const res = await fetch("/api/admin/ai-news", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ config: data.config }),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      setMsg(`❌ ${body.error ?? "保存失败"}`);
+      return false;
+    }
+    setData((current) => (current ? { ...current, config: body.config } : current));
+    if (showSuccess) setMsg("✅ 配置已保存，调度器将按新设置运行");
+    return true;
+  }
+
+  async function runNow() {
+    if (!(await persistConfig(false))) return;
+    setRunning(true);
+    setMsg("正在抓取资讯并调用 AI，通常需要几十秒…");
+    try {
+      const res = await fetch("/api/admin/ai-news", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "run" }),
+      });
+      const body = await res.json();
+      if (res.ok) {
+        setData({
+          config: body.config,
+          drafts: body.drafts,
+          models: body.models,
+          state: body.state,
+        });
+        const result = body.result as NewsRunLog;
+        setMsg(
+          `✅ 完成：发现 ${result.fetched} 条，生成 ${result.generated} 篇，发布 ${result.published} 篇` +
+            (result.errors?.length ? `；${result.errors.length} 个问题见运行记录` : "")
+        );
+      } else {
+        setMsg(`❌ ${body.error ?? "运行失败"}`);
+      }
+    } catch {
+      setMsg("❌ 无法连接站点后端");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function publish(id: string) {
+    setMsg("发布中…");
+    const res = await fetch("/api/admin/ai-news", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "publish", id }),
+    });
+    const body = await res.json();
+    if (res.ok) {
+      setMsg(`✅ 已发布为文章：${body.draft.postSlug}`);
+      await refresh();
+    } else {
+      setMsg(`❌ ${body.error ?? "发布失败"}`);
+    }
+  }
+
+  async function remove(id: string) {
+    if (!confirm("确定删除这条 AI 资讯记录吗？已发布的 Markdown 文章不会被删除。")) return;
+    const res = await fetch(`/api/admin/ai-news?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (res.ok) await refresh();
+  }
+
+  if (!data) return <p className="text-sm text-slate-mid">加载中…</p>;
+  const { config, drafts, models, state } = data;
+
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="card-soft p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-grotesk text-lg font-bold">自动抓取与 AI 编辑</h2>
+              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-mid">
+                从 RSS/Atom 读取最新条目，按链接去重后调用已配置模型，生成带来源说明的中文
+                Markdown。自动发布关闭时，文章会进入下方待审队列。
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => void persistConfig()}
+                className="rounded-lg border border-hairline px-4 py-2 text-sm text-slate-mid hover:border-black hover:text-black"
+              >
+                保存配置
+              </button>
+              <button
+                onClick={() => void runNow()}
+                disabled={running}
+                className="btn-black rounded-lg px-4 py-2 text-sm font-semibold disabled:cursor-wait disabled:opacity-50"
+              >
+                {running ? "执行中…" : "立即运行"}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <label className="flex items-center gap-2 rounded-lg border border-hairline px-3 py-2.5 text-sm">
+              <input
+                type="checkbox"
+                checked={config.enabled}
+                onChange={(e) => setConfig({ enabled: e.target.checked })}
+              />
+              启用自动定时任务
+            </label>
+            <label className="flex items-center gap-2 rounded-lg border border-hairline px-3 py-2.5 text-sm">
+              <input
+                type="checkbox"
+                checked={config.autoPublish}
+                onChange={(e) => setConfig({ autoPublish: e.target.checked })}
+              />
+              生成后自动发布
+            </label>
+            <label className="block text-xs font-semibold text-slate-mid">
+              生成模型
+              <select
+                value={config.model}
+                onChange={(e) => setConfig({ model: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+              >
+                <option value="">使用模型映射第一项</option>
+                {models.map((model) => (
+                  <option key={model} value={model}>{model}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-xs font-semibold text-slate-mid">
+              文章分类
+              <input
+                value={config.category}
+                onChange={(e) => setConfig({ category: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-slate-mid">
+              运行间隔（分钟，15–10080）
+              <input
+                type="number"
+                min={15}
+                max={10080}
+                value={config.intervalMinutes}
+                onChange={(e) => setConfig({ intervalMinutes: Number(e.target.value) })}
+                className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-slate-mid">
+              每次最多生成（1–10）
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={config.maxItemsPerRun}
+                onChange={(e) => setConfig({ maxItemsPerRun: Number(e.target.value) })}
+                className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-slate-mid">
+              只看最近多少小时（1–720）
+              <input
+                type="number"
+                min={1}
+                max={720}
+                value={config.lookbackHours}
+                onChange={(e) => setConfig({ lookbackHours: Number(e.target.value) })}
+                className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+              />
+            </label>
+            <label className="flex items-end gap-2 pb-2 text-xs text-slate-mid">
+              <input
+                type="checkbox"
+                checked={config.fetchArticle}
+                onChange={(e) => setConfig({ fetchArticle: e.target.checked })}
+              />
+              尝试抓取新闻原网页正文（失败自动回退 RSS 摘要）
+            </label>
+          </div>
+
+          <label className="mt-4 block text-xs font-semibold text-slate-mid">
+            关键词过滤（逗号分隔，留空不过滤）
+            <input
+              value={config.keywords}
+              onChange={(e) => setConfig({ keywords: e.target.value })}
+              placeholder="AI, 人工智能, 大模型, OpenAI"
+              className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+            />
+          </label>
+          <label className="mt-4 block text-xs font-semibold text-slate-mid">
+            编辑风格提示
+            <textarea
+              rows={3}
+              value={config.customPrompt}
+              onChange={(e) => setConfig({ customPrompt: e.target.value })}
+              className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+            />
+          </label>
+          {config.autoPublish && (
+            <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-700">
+              自动发布已开启。建议先关闭自动发布运行几次，确认资讯源质量和模型文风后再开启。
+            </p>
+          )}
+          {msg && <p className="mt-4 whitespace-pre-line text-xs text-slate-mid">{msg}</p>}
+        </div>
+
+        <div className="card-soft p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-grotesk text-lg font-bold">RSS / Atom 资讯源</h2>
+              <p className="mt-1 text-xs text-slate-mid">建议使用官方博客、媒体或聚合搜索的订阅地址。</p>
+            </div>
+            <button
+              onClick={() =>
+                setConfig({
+                  sources: [
+                    ...config.sources,
+                    {
+                      id: `source-${Date.now().toString(36)}`,
+                      name: `资讯源 ${config.sources.length + 1}`,
+                      url: "",
+                      enabled: true,
+                    },
+                  ],
+                })
+              }
+              className="rounded-lg border border-hairline px-3 py-1.5 text-xs text-slate-mid hover:border-black hover:text-black"
+            >
+              + 添加
+            </button>
+          </div>
+          <div className="mt-4 space-y-3">
+            {config.sources.length === 0 && (
+              <p className="rounded-lg bg-cloud px-4 py-3 text-xs leading-relaxed text-slate-mid">
+                尚未添加资讯源。可添加支持 RSS 2.0 或 Atom 的地址；也可使用新闻聚合站按关键词生成的 RSS。
+              </p>
+            )}
+            {config.sources.map((source, index) => (
+              <div key={source.id} className="rounded-xl border border-hairline p-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={source.enabled}
+                    title="启用此源"
+                    onChange={(e) => updateSource(index, { enabled: e.target.checked })}
+                  />
+                  <input
+                    value={source.name}
+                    placeholder="来源名称"
+                    onChange={(e) => updateSource(index, { name: e.target.value })}
+                    className="min-w-0 flex-1 rounded-lg border border-hairline px-3 py-1.5 text-sm font-semibold outline-none focus:border-black"
+                  />
+                  <button
+                    onClick={() =>
+                      setConfig({ sources: config.sources.filter((_, i) => i !== index) })
+                    }
+                    className="rounded-md border border-red-200 px-2.5 py-1.5 text-xs text-red-500 hover:border-red-500"
+                  >
+                    删除
+                  </button>
+                </div>
+                <input
+                  value={source.url}
+                  placeholder="https://example.com/feed.xml"
+                  onChange={(e) => updateSource(index, { url: e.target.value })}
+                  className="mt-2 w-full rounded-lg border border-hairline px-3 py-1.5 text-xs outline-none focus:border-black"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 rounded-lg bg-cloud px-4 py-3 text-xs leading-relaxed text-slate-mid">
+            <p>应用内调度：适合当前 Docker / Node 长驻部署，每分钟检查一次是否到期。</p>
+            <p className="mt-1">
+              外部调度：请求 <code>/api/cron/ai-news</code>，请求头使用
+              <code> Authorization: Bearer $CRON_SECRET</code>；需在服务器配置同名环境变量。
+            </p>
+            <p className="mt-2">
+              最近运行：{state.lastRunAt ? new Date(state.lastRunAt).toLocaleString() : "尚未运行"}
+              {` · 已去重 ${state.seenCount} 条`}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="card-soft p-6">
+          <h2 className="font-grotesk text-lg font-bold">
+            AI 资讯队列（待审 {drafts.filter((draft) => draft.status === "draft").length}）
+          </h2>
+          <div className="mt-4 space-y-3">
+            {drafts.length === 0 && (
+              <p className="rounded-lg bg-cloud px-4 py-3 text-xs text-slate-mid">
+                暂无生成记录。保存资讯源与模型设置后点“立即运行”。
+              </p>
+            )}
+            {drafts.map((draft) => (
+              <div key={draft.id} className="rounded-xl border border-hairline p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] ${draft.status === "published" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                        {draft.status === "published" ? "已发布" : "待审核"}
+                      </span>
+                      <span className="text-[11px] text-slate-mid">{draft.sourceName}</span>
+                    </div>
+                    <p className="mt-2 text-sm font-bold">{draft.title}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-mid">{draft.excerpt}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    {draft.status === "draft" && (
+                      <button
+                        onClick={() => void publish(draft.id)}
+                        className="btn-black rounded-lg px-3 py-1.5 text-xs"
+                      >
+                        发布
+                      </button>
+                    )}
+                    <button
+                      onClick={() => void remove(draft.id)}
+                      className="rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:border-red-500"
+                    >
+                      删除记录
+                    </button>
+                  </div>
+                </div>
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-xs text-slate-mid hover:text-black">预览 Markdown</summary>
+                  <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded-lg bg-cloud p-3 text-xs leading-relaxed">{draft.content}</pre>
+                </details>
+                <a
+                  href={draft.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 block truncate text-[11px] text-slate-mid underline"
+                >
+                  原文：{draft.originalTitle}
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card-soft p-6">
+          <h2 className="font-grotesk text-lg font-bold">运行记录</h2>
+          <div className="mt-4 space-y-3">
+            {state.runs.length === 0 && <p className="text-xs text-slate-mid">暂无运行记录。</p>}
+            {state.runs.slice(0, 12).map((run) => (
+              <div key={run.id} className="rounded-lg border border-hairline px-3 py-2.5 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold">
+                    {run.trigger === "manual" ? "手动" : run.trigger === "cron" ? "外部 Cron" : "应用内定时"}
+                  </span>
+                  <span className="text-slate-mid">{new Date(run.finishedAt).toLocaleString()}</span>
+                </div>
+                <p className="mt-1 text-slate-mid">
+                  发现 {run.fetched} · 生成 {run.generated} · 发布 {run.published}
+                </p>
+                {run.errors.length > 0 && (
+                  <details className="mt-1 text-red-600">
+                    <summary className="cursor-pointer">{run.errors.length} 个问题</summary>
+                    <ul className="mt-1 list-disc space-y-1 pl-4">
+                      {run.errors.map((error, index) => <li key={index}>{error}</li>)}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
