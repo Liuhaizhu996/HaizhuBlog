@@ -6,7 +6,8 @@
 
 - **电影感 UI**：循环视频背景 Hero（rAF 持续监测 + 0.5s 淡入淡出手动循环）、Instrument Serif / Inter / Schibsted Grotesk 字体体系、黑白灰 + 荧光绿点缀
 - **管理后台 `/admin`**（密码访问）：
-  - 📝 文章发布：Markdown 编辑器，支持图片 / `<video>` / iframe 嵌入，发布即上线
+  - 📝 文章发布：Markdown 编辑器，**本地图片上传插入**（按钮 / 拖拽 / 粘贴截图，自动上传）、图库复用、实时预览、快捷排版工具栏，支持 `<video>` / iframe 嵌入，发布即上线
+  - 🔎 AI 采集改写：**联网搜索**新闻 / 论坛（DuckDuckGo，Bing 兜底）→ 抓取网页正文 → 用站内配置的大模型**一键改写成排版优美的 Markdown**，一键填入文章编辑器；复用「AI 模型」页的同一套 API 渠道，无需额外密钥
   - 🤖 AI 模型：配置站点内置模型服务（访客免配置直接对话），密钥只存服务器
   - 🧭 站点导航：分组式链接管理（参考 Navlink），保存即生效
   - 💬 客服与联系方式：TG 机器人浮窗与关于页联系方式统一配置
@@ -29,7 +30,7 @@
 ADMIN_PASSWORD=你的强密码   # 未设置时默认 haizhuai-admin，部署后务必修改
 ```
 
-后台管理的数据保存在 `data/` 目录（settings.json / links.json / tgchat.json），文章写入 `content/posts/`。自托管部署请确保这两个目录可写并纳入备份。
+后台管理的数据保存在 `data/` 目录（settings.json / links.json / tgchat.json，上传的图片在 `data/uploads/`，通过 `/uploads/…` 路由对外访问），文章写入 `content/posts/`。自托管部署请确保这两个目录可写并纳入备份。
 
 ## 💬 配置 TG 双向客服
 

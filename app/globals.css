@@ -184,6 +184,91 @@ body {
   color: var(--color-slate-mid);
 }
 
+/* 图片：自适应宽度 + 圆角卡片式呈现，alt 文本作为悬浮提示 */
+.prose-haizhu img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.6rem auto;
+  border-radius: 12px;
+  border: 1px solid var(--color-hairline);
+  box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.25);
+}
+
+/* 视频 / 嵌入内容自适应 */
+.prose-haizhu video,
+.prose-haizhu iframe {
+  display: block;
+  max-width: 100%;
+  margin: 1.6rem auto;
+  border-radius: 12px;
+  border: 1px solid var(--color-hairline);
+}
+
+.prose-haizhu iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+/* 表格：横向可滚动、斑马纹 */
+.prose-haizhu table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1.6rem 0;
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+
+.prose-haizhu th,
+.prose-haizhu td {
+  border: 1px solid var(--color-hairline);
+  padding: 0.55em 0.9em;
+  text-align: left;
+}
+
+.prose-haizhu th {
+  background: var(--color-cloud);
+  font-weight: 600;
+  color: #000;
+}
+
+.prose-haizhu tr:nth-child(even) td {
+  background: #fbfbfb;
+}
+
+.prose-haizhu hr {
+  border: none;
+  border-top: 1px solid var(--color-hairline);
+  margin: 2.2rem 0;
+}
+
+/* 正文内一级标题（Markdown 里写了 # 时）降级为与 h2 相近的视觉 */
+.prose-haizhu h1 {
+  font-family: var(--font-grotesk);
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #000;
+  margin: 2.2rem 0 1rem;
+}
+
+.prose-haizhu h4 {
+  font-family: var(--font-grotesk);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #000;
+  margin: 1.5rem 0 0.6rem;
+}
+
+/* 长链接 / 长单词不撑破移动端布局 */
+.prose-haizhu a,
+.prose-haizhu code {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 /* ---------- Hero 入场动画（按提示词规格） ---------- */
 @keyframes fade-rise {
   from {

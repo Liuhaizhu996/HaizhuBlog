@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { marked } from "marked";
 import type { PostMeta } from "@/lib/posts";
 import type { LinkGroup } from "@/lib/links";
 import type {
@@ -32,6 +33,7 @@ const EMPTY_DRAFT: PostDraft = {
 
 const TABS = [
   { key: "posts", label: "📝 文章发布" },
+  { key: "collect", label: "🔎 AI 采集改写" },
   { key: "ai", label: "🤖 AI 模型" },
   { key: "tools", label: "🧰 AI 工具" },
   { key: "links", label: "🧭 站点导航" },
@@ -49,6 +51,8 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginErr, setLoginErr] = useState("");
   const [tab, setTab] = useState<TabKey>("posts");
+  // 「AI 采集」生成的稿件，交给文章编辑器
+  const [pendingDraft, setPendingDraft] = useState<PostDraft | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/login")
@@ -142,12 +146,12 @@ export default function AdminPage() {
         </p>
       )}
 
-      <div className="mt-8 flex flex-wrap gap-2 border-b border-hairline pb-3">
+      <div className="mt-8 flex gap-2 overflow-x-auto border-b border-hairline pb-3">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition ${
               tab === t.key
                 ? "bg-black text-white"
                 : "text-slate-mid hover:text-black"
@@ -159,7 +163,21 @@ export default function AdminPage() {
       </div>
 
       <div className="mt-8">
-        {tab === "posts" && <PostsPanel />}
+        {tab === "posts" && (
+          <PostsPanel
+            incoming={pendingDraft}
+            onConsumed={() => setPendingDraft(null)}
+          />
+        )}
+        {tab === "collect" && (
+          <CollectPanel
+            onExport={(d) => {
+              setPendingDraft(d);
+              setTab("posts");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
+        )}
         {tab === "ai" && <AiPanel />}
         {tab === "tools" && <ToolsPanel />}
         {tab === "links" && <LinksPanel />}
@@ -172,11 +190,36 @@ export default function AdminPage() {
 
 /* ================= 文章管理 ================= */
 
-function PostsPanel() {
+type UploadedImage = { name: string; url: string; size: number; mtime: number };
+
+/** Markdown 快捷插入按钮 */
+const MD_SNIPPETS: Array<{ label: string; title: string; snippet: string }> = [
+  { label: "H2", title: "小标题", snippet: "\n## 小标题\n" },
+  { label: "B", title: "加粗", snippet: "**加粗文字**" },
+  { label: "❝", title: "引用", snippet: "\n> 引用内容\n" },
+  { label: "•", title: "列表", snippet: "\n- 要点一\n- 要点二\n" },
+  { label: "</>", title: "代码块", snippet: "\n```\n代码\n```\n" },
+  { label: "🔗", title: "链接", snippet: "[链接文字](https://)" },
+  { label: "―", title: "分隔线", snippet: "\n---\n" },
+];
+
+function PostsPanel({
+  incoming,
+  onConsumed,
+}: {
+  incoming: PostDraft | null;
+  onConsumed: () => void;
+}) {
   const [posts, setPosts] = useState<PostMeta[]>([]);
   const [draft, setDraft] = useState<PostDraft>(EMPTY_DRAFT);
   const [editing, setEditing] = useState(false);
   const [msg, setMsg] = useState("");
+  const [preview, setPreview] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [images, setImages] = useState<UploadedImage[]>([]);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(() => {
     fetch("/api/admin/posts")
@@ -185,6 +228,78 @@ function PostsPanel() {
   }, []);
 
   useEffect(refresh, [refresh]);
+
+  // 接收「AI 采集改写」页导入的稿件
+  useEffect(() => {
+    if (!incoming) return;
+    setDraft(incoming);
+    setEditing(false);
+    setPreview(false);
+    setMsg("✍️ 已载入 AI 采集稿件，检查排版后即可发布");
+    onConsumed();
+  }, [incoming, onConsumed]);
+
+  const loadImages = useCallback(() => {
+    fetch("/api/admin/upload")
+      .then((r) => r.json())
+      .then((d) => setImages(d.images ?? []));
+  }, []);
+
+  useEffect(() => {
+    if (galleryOpen) loadImages();
+  }, [galleryOpen, loadImages]);
+
+  /** 在光标处插入文本，并保持焦点 */
+  function insertAtCursor(snippet: string) {
+    const ta = contentRef.current;
+    setDraft((d) => {
+      const start = ta?.selectionStart ?? d.content.length;
+      const end = ta?.selectionEnd ?? start;
+      const content = d.content.slice(0, start) + snippet + d.content.slice(end);
+      if (ta) {
+        requestAnimationFrame(() => {
+          ta.focus();
+          const pos = start + snippet.length;
+          ta.setSelectionRange(pos, pos);
+        });
+      }
+      return { ...d, content };
+    });
+  }
+
+  /** 上传本地图片并插入 Markdown（按钮 / 粘贴 / 拖拽共用） */
+  async function uploadImages(files: FileList | File[]) {
+    const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (!list.length) return;
+    setUploading(true);
+    for (const f of list) {
+      const fd = new FormData();
+      fd.append("file", f);
+      try {
+        const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+        const d = await res.json();
+        if (res.ok) {
+          const alt = f.name.replace(/\.[^.]+$/, "") || "图片";
+          insertAtCursor(`\n![${alt}](${d.url})\n`);
+          setMsg(`✅ 图片已上传并插入（${d.name}）`);
+        } else {
+          setMsg(`❌ ${d.error ?? "上传失败"}`);
+        }
+      } catch {
+        setMsg("❌ 上传失败，请检查网络后重试");
+      }
+    }
+    setUploading(false);
+    if (galleryOpen) loadImages();
+  }
+
+  async function removeImage(name: string) {
+    if (!confirm(`删除图片「${name}」？已引用它的文章会显示裂图。`)) return;
+    await fetch(`/api/admin/upload?name=${encodeURIComponent(name)}`, {
+      method: "DELETE",
+    });
+    loadImages();
+  }
 
   async function save() {
     setMsg("保存中…");
@@ -286,18 +401,141 @@ function PostsPanel() {
             className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
           />
         </label>
-        <label className="mt-3 block text-xs font-semibold text-slate-mid">
-          正文（Markdown）
-          <textarea
-            value={draft.content}
-            onChange={(e) => setDraft({ ...draft, content: e.target.value })}
-            rows={14}
-            placeholder={
-              "支持完整 Markdown 语法。\n\n插入图片：![说明](https://图片地址)\n插入视频：<video src=\"https://视频地址\" controls style=\"max-width:100%\"></video>\n嵌入B站等：<iframe src=\"...\" ...></iframe>"
-            }
-            className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 font-mono text-sm font-normal text-black outline-none focus:border-black"
+        <div className="mt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-slate-mid">
+              正文（Markdown）
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {MD_SNIPPETS.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  title={s.title}
+                  onClick={() => insertAtCursor(s.snippet)}
+                  className="rounded-md border border-hairline px-2 py-1 font-mono text-xs text-slate-mid hover:border-black hover:text-black"
+                >
+                  {s.label}
+                </button>
+              ))}
+              <span className="mx-1 h-4 w-px bg-hairline" />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="rounded-md border border-hairline px-2.5 py-1 text-xs text-slate-mid hover:border-black hover:text-black disabled:opacity-50"
+              >
+                {uploading ? "上传中…" : "🖼 上传图片"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setGalleryOpen((v) => !v)}
+                className={`rounded-md border px-2.5 py-1 text-xs ${
+                  galleryOpen
+                    ? "border-black text-black"
+                    : "border-hairline text-slate-mid hover:border-black hover:text-black"
+                }`}
+              >
+                图库
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreview((v) => !v)}
+                className={`rounded-md border px-2.5 py-1 text-xs ${
+                  preview
+                    ? "border-black bg-black text-white"
+                    : "border-hairline text-slate-mid hover:border-black hover:text-black"
+                }`}
+              >
+                {preview ? "返回编辑" : "预览"}
+              </button>
+            </div>
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp,image/avif"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.length) uploadImages(e.target.files);
+              e.target.value = "";
+            }}
           />
-        </label>
+
+          {/* 图库：点击图片插入到光标处 */}
+          {galleryOpen && (
+            <div className="mt-2 rounded-lg border border-hairline bg-cloud/60 p-3">
+              {images.length === 0 ? (
+                <p className="text-xs text-slate-mid">
+                  还没有上传过图片。点「🖼 上传图片」，或直接把图片拖进正文框 / 粘贴截图。
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                  {images.map((img) => (
+                    <div key={img.name} className="group relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img.url}
+                        alt={img.name}
+                        title={`点击插入 ${img.name}`}
+                        onClick={() =>
+                          insertAtCursor(`\n![${img.name.replace(/\.[^.]+$/, "")}](${img.url})\n`)
+                        }
+                        className="h-20 w-full cursor-pointer rounded-lg border border-hairline object-cover transition hover:border-black"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(img.name)}
+                        title="删除图片"
+                        className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-black/70 text-[10px] text-white group-hover:flex"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {preview ? (
+            <div
+              className="prose-haizhu mt-2 min-h-[336px] rounded-lg border border-hairline px-4 py-3 text-sm"
+              dangerouslySetInnerHTML={{
+                __html: (marked.parse(draft.content || "*（暂无内容）*") as string) ?? "",
+              }}
+            />
+          ) : (
+            <textarea
+              ref={contentRef}
+              value={draft.content}
+              onChange={(e) => setDraft({ ...draft, content: e.target.value })}
+              rows={14}
+              onPaste={(e) => {
+                const files = Array.from(e.clipboardData?.files ?? []);
+                if (files.some((f) => f.type.startsWith("image/"))) {
+                  e.preventDefault();
+                  uploadImages(files);
+                }
+              }}
+              onDrop={(e) => {
+                if (e.dataTransfer?.files?.length) {
+                  e.preventDefault();
+                  uploadImages(e.dataTransfer.files);
+                }
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              placeholder={
+                "支持完整 Markdown 语法。\n\n本地图片：点上方「🖼 上传图片」，或直接把图片拖进来 / 粘贴截图，自动上传并插入。\n网络图片：![说明](https://图片地址)\n插入视频：<video src=\"https://视频地址\" controls style=\"max-width:100%\"></video>\n嵌入B站等：<iframe src=\"...\" ...></iframe>"
+              }
+              className="mt-2 w-full rounded-lg border border-hairline px-3 py-2 font-mono text-sm font-normal leading-relaxed text-black outline-none focus:border-black"
+            />
+          )}
+          <p className="mt-1 text-[11px] text-slate-mid">
+            💡 图片可直接拖拽 / 粘贴到正文框，自动上传到服务器并插入 Markdown；「图库」可复用已上传的图片。
+          </p>
+        </div>
         <div className="mt-4 flex items-center gap-3">
           <button onClick={save} className="btn-black rounded-lg px-6 py-2.5 text-sm font-semibold">
             {editing ? "保存修改" : "发布文章"}
@@ -1152,6 +1390,411 @@ function BotPanel() {
           </button>
           {msg && <span className="text-xs text-slate-mid">{msg}</span>}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================= AI 采集改写（联网搜索 → 抓取正文 → LLM 改写为 Markdown） ================= */
+
+type CollectResult = { title: string; url: string; snippet: string; checked: boolean };
+type FetchedPage = { url: string; title: string; text: string; error?: string };
+
+const SEARCH_PRESETS = [
+  "AI 行业 最新新闻",
+  "大模型 发布 动态",
+  "开源项目 本周热门",
+  "科技论坛 热门讨论",
+];
+
+function CollectPanel({ onExport }: { onExport: (d: PostDraft) => void }) {
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<CollectResult[]>([]);
+  const [manualUrl, setManualUrl] = useState("");
+  const [pages, setPages] = useState<FetchedPage[]>([]);
+  const [fetching, setFetching] = useState(false);
+  const [models, setModels] = useState<string[]>([]);
+  const [aiConfigured, setAiConfigured] = useState(true);
+  const [model, setModel] = useState("");
+  const [instruction, setInstruction] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [output, setOutput] = useState("");
+  const [err, setErr] = useState("");
+  const outputRef = useRef<HTMLTextAreaElement>(null);
+
+  // 模型列表复用「AI 模型」页配置的渠道与映射（即前台对话用的同一套 API）
+  useEffect(() => {
+    fetch("/api/public/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        const list: string[] = d.serverAi?.models ?? [];
+        setModels(list);
+        setModel(list[0] ?? "");
+        setAiConfigured(Boolean(d.serverAi?.configured));
+      })
+      .catch(() => setAiConfigured(false));
+  }, []);
+
+  async function search(q?: string) {
+    const kw = (q ?? query).trim();
+    if (!kw) return;
+    setQuery(kw);
+    setSearching(true);
+    setErr("");
+    try {
+      const res = await fetch("/api/admin/collect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "search", query: kw }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setErr(d.error ?? "搜索失败");
+      } else {
+        // 默认勾选前 3 条，管理员可自行调整
+        setResults(
+          (d.results as Omit<CollectResult, "checked">[]).map((r, i) => ({
+            ...r,
+            checked: i < 3,
+          }))
+        );
+        setPages([]);
+      }
+    } catch {
+      setErr("无法连接站点后端");
+    }
+    setSearching(false);
+  }
+
+  function addManual() {
+    const url = manualUrl.trim();
+    if (!/^https?:\/\//.test(url)) {
+      setErr("请输入以 http(s):// 开头的完整网址");
+      return;
+    }
+    setErr("");
+    setResults((rs) => [
+      { title: url, url, snippet: "（手动添加）", checked: true },
+      ...rs.filter((r) => r.url !== url),
+    ]);
+    setManualUrl("");
+  }
+
+  async function fetchPages() {
+    const urls = results.filter((r) => r.checked).map((r) => r.url);
+    if (!urls.length) {
+      setErr("请先勾选要抓取的网页（最多 6 个）");
+      return;
+    }
+    setFetching(true);
+    setErr("");
+    try {
+      const res = await fetch("/api/admin/collect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "fetch", urls }),
+      });
+      const d = await res.json();
+      if (!res.ok) setErr(d.error ?? "抓取失败");
+      else setPages(d.pages ?? []);
+    } catch {
+      setErr("无法连接站点后端");
+    }
+    setFetching(false);
+  }
+
+  /** 调用站内 /api/chat（与前台对话同一套渠道配置）流式生成 Markdown 稿件 */
+  async function generate() {
+    const usable = pages.filter((p) => p.text);
+    if (!usable.length) {
+      setErr("请先完成第 ② 步抓取，至少要有一篇成功提取正文的网页");
+      return;
+    }
+    setGenerating(true);
+    setErr("");
+    setOutput("");
+
+    const material = usable
+      .map(
+        (p, i) =>
+          `【素材 ${i + 1}】${p.title || "无标题"}\n来源：${p.url}\n${p.text}`
+      )
+      .join("\n\n----------------\n\n");
+
+    const messages = [
+      {
+        role: "system",
+        content:
+          "你是一位资深中文科技编辑，擅长把多篇新闻/论坛素材整合改写成一篇排版优美的 Markdown 博客文章。",
+      },
+      {
+        role: "user",
+        content: `请基于以下素材，整合改写成一篇原创中文博客文章。
+
+要求：
+1. 只依据素材内容写作，不得编造事实；观点冲突时注明不同来源的说法。
+2. 排版优美：使用 ## 小标题分节、要点用列表、关键结论可用 > 引用块，适当加粗关键词；如有数据对比可用 Markdown 表格。
+3. 文末加「## 参考来源」小节，列出素材链接。
+4. 语言流畅自然，面向普通科技读者，全文 800–1500 字。
+${instruction.trim() ? `5. 额外要求：${instruction.trim()}` : ""}
+
+严格按以下格式输出（前三行是元信息，之后单独一行 --- 分隔，再输出正文 Markdown）：
+TITLE: <文章标题>
+EXCERPT: <一句话摘要，60 字以内>
+CATEGORY: <资讯|教程|日常 中选一个>
+---
+<正文 Markdown>
+
+素材如下：
+
+${material}`,
+      },
+    ];
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model, messages }),
+      });
+      const ct = res.headers.get("content-type") ?? "";
+      if (ct.includes("application/json")) {
+        const d = await res.json();
+        if (d.demo) {
+          setErr("站点尚未接入真实模型服务：请先到「🤖 AI 模型」页添加 API 渠道并保存");
+        } else {
+          setErr(d.error ?? "生成失败");
+        }
+      } else if (res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let acc = "";
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          acc += decoder.decode(value, { stream: true });
+          setOutput(acc);
+          outputRef.current?.scrollTo({ top: outputRef.current.scrollHeight });
+        }
+      }
+    } catch {
+      setErr("生成中断，请重试");
+    }
+    setGenerating(false);
+  }
+
+  /** 解析 TITLE/EXCERPT/CATEGORY 头，填入文章编辑器 */
+  function exportDraft() {
+    const lines = output.split("\n");
+    const sep = lines.findIndex((l) => l.trim() === "---");
+    const head = (sep === -1 ? [] : lines.slice(0, sep)).join("\n");
+    const body = (sep === -1 ? output : lines.slice(sep + 1).join("\n")).trim();
+    const title = head.match(/TITLE[:：]\s*(.+)/)?.[1]?.trim();
+    const excerpt = head.match(/EXCERPT[:：]\s*(.+)/)?.[1]?.trim();
+    const category = head.match(/CATEGORY[:：]\s*(资讯|教程|日常)/)?.[1];
+    onExport({
+      slug: "",
+      title: title || query || "AI 采集稿件",
+      date: new Date().toISOString().slice(0, 10),
+      category: category ?? "资讯",
+      excerpt: excerpt ?? "",
+      content: body,
+    });
+  }
+
+  const checkedCount = results.filter((r) => r.checked).length;
+
+  return (
+    <div className="max-w-4xl space-y-6">
+      <p className="text-sm leading-relaxed text-slate-mid">
+        三步生成文章：① 联网搜索新闻 / 论坛（或直接粘贴网址）→ ② 抓取网页正文 →
+        ③ 用站内配置的大模型一键改写成排版优美的 Markdown，并填入文章编辑器。
+        改写使用「🤖 AI 模型」页配置的同一套 API 渠道。
+      </p>
+
+      {!aiConfigured && (
+        <p className="rounded-lg bg-amber-50 px-4 py-3 text-xs text-amber-700">
+          ⚠️ 尚未配置任何 AI 服务，第 ③ 步无法使用。请先到「🤖 AI 模型」页添加 API 渠道。
+        </p>
+      )}
+
+      {/* ① 联网搜索 */}
+      <div className="card-soft p-6">
+        <h2 className="font-grotesk text-lg font-bold">① 联网搜索素材</h2>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && search()}
+            placeholder="输入关键词，如：AI 芯片 最新进展"
+            className="w-full rounded-lg border border-hairline px-3 py-2.5 text-sm outline-none focus:border-black"
+          />
+          <button
+            onClick={() => search()}
+            disabled={searching}
+            className="btn-black shrink-0 rounded-lg px-6 py-2.5 text-sm font-semibold disabled:opacity-60"
+          >
+            {searching ? "搜索中…" : "🔍 联网搜索"}
+          </button>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {SEARCH_PRESETS.map((p) => (
+            <button
+              key={p}
+              onClick={() => search(p)}
+              className="rounded-full border border-hairline px-3 py-1 text-xs text-slate-mid hover:border-black hover:text-black"
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input
+            value={manualUrl}
+            onChange={(e) => setManualUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addManual()}
+            placeholder="也可以直接粘贴文章 / 帖子网址（https://…）"
+            className="w-full rounded-lg border border-hairline px-3 py-2 text-xs outline-none focus:border-black"
+          />
+          <button
+            onClick={addManual}
+            className="shrink-0 rounded-lg border border-hairline px-4 py-2 text-xs text-slate-mid hover:border-black hover:text-black"
+          >
+            + 添加网址
+          </button>
+        </div>
+
+        {results.length > 0 && (
+          <ul className="mt-4 space-y-2">
+            {results.map((r, i) => (
+              <li
+                key={r.url}
+                className={`flex items-start gap-3 rounded-lg border px-3.5 py-2.5 transition ${
+                  r.checked ? "border-black/60 bg-cloud/60" : "border-hairline"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={r.checked}
+                  onChange={(e) =>
+                    setResults((rs) =>
+                      rs.map((x, j) => (j === i ? { ...x, checked: e.target.checked } : x))
+                    )
+                  }
+                  className="mt-1"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{r.title}</p>
+                  <p className="mt-0.5 line-clamp-2 text-xs text-slate-mid">{r.snippet}</p>
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-0.5 block truncate text-[11px] text-slate-mid underline"
+                  >
+                    {r.url}
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* ② 抓取正文 */}
+      <div className="card-soft p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-grotesk text-lg font-bold">② 抓取网页正文</h2>
+          <button
+            onClick={fetchPages}
+            disabled={fetching || !checkedCount}
+            className="btn-black rounded-lg px-6 py-2 text-sm font-semibold disabled:opacity-60"
+          >
+            {fetching ? "抓取中…" : `抓取已选 ${checkedCount} 个网页`}
+          </button>
+        </div>
+        {pages.length > 0 && (
+          <ul className="mt-4 space-y-2">
+            {pages.map((p) => (
+              <li
+                key={p.url}
+                className="flex items-center justify-between gap-3 rounded-lg border border-hairline px-3.5 py-2.5 text-sm"
+              >
+                <span className="min-w-0 truncate">{p.title || p.url}</span>
+                {p.error ? (
+                  <span className="shrink-0 text-xs text-red-500">❌ {p.error}</span>
+                ) : (
+                  <span className="shrink-0 text-xs text-green-600">
+                    ✅ 已提取 {p.text.length} 字
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* ③ AI 改写 */}
+      <div className="card-soft p-6">
+        <h2 className="font-grotesk text-lg font-bold">③ AI 一键改写为 Markdown</h2>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="block text-xs font-semibold text-slate-mid">
+            使用模型（来自「AI 模型」页的映射）
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+            >
+              {models.length === 0 && <option value="">（暂无可用模型）</option>}
+              {models.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-slate-mid">
+            额外写作要求（可选）
+            <input
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              placeholder="如：偏向教程口吻 / 重点分析对开发者的影响"
+              className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-sm font-normal text-black outline-none focus:border-black"
+            />
+          </label>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            onClick={generate}
+            disabled={generating || !pages.some((p) => p.text)}
+            className="btn-black rounded-lg px-6 py-2.5 text-sm font-semibold disabled:opacity-60"
+          >
+            {generating ? "✨ 生成中…" : "✨ 开始改写"}
+          </button>
+          {output && !generating && (
+            <button
+              onClick={exportDraft}
+              className="btn-lime rounded-lg px-6 py-2.5 text-sm font-semibold"
+            >
+              📝 一键填入文章编辑器
+            </button>
+          )}
+        </div>
+        {err && (
+          <p className="mt-3 whitespace-pre-line break-all rounded-lg bg-red-50 px-4 py-3 text-xs text-red-600">
+            {err}
+          </p>
+        )}
+        {output && (
+          <textarea
+            ref={outputRef}
+            value={output}
+            onChange={(e) => setOutput(e.target.value)}
+            rows={16}
+            className="mt-4 w-full rounded-lg border border-hairline bg-cloud/40 px-3 py-2 font-mono text-xs leading-relaxed outline-none focus:border-black"
+          />
+        )}
       </div>
     </div>
   );
